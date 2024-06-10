@@ -2,9 +2,9 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
-use crate::{input::Inputs, macros::query_guard};
+use crate::input::Inputs;
 
-use super::PLAYER_KICK_SPEED;
+use super::{components::UpperCollider, PLAYER_KICK_SPEED};
 
 #[derive(Component)]
 pub struct Grounded {
@@ -13,11 +13,15 @@ pub struct Grounded {
 
 impl Grounded {
     pub fn start(&mut self) {
-        self.in_state = true
+        if !self.in_state {
+            self.in_state = true
+        }
     }
 
     pub fn stop(&mut self) {
-        self.in_state = false
+        if self.in_state {
+            self.in_state = false
+        }
     }
 
     pub fn check(&self) -> bool {
@@ -30,6 +34,64 @@ impl Grounded {
 }
 
 #[derive(Component)]
+pub struct Crouching {
+    in_state: bool,
+    pub stuck: bool,
+}
+
+pub fn crouching_state_change(
+    mut q_state: Query<&mut Crouching>,
+    mut q_collider: Query<Entity, With<UpperCollider>>,
+    mut commands: Commands,
+    rapier_context: Res<RapierContext>,
+) {
+    for (mut state, collider) in q_state.iter_mut().zip(q_collider.iter_mut()) {
+        if state.is_changed() || state.stuck {
+            if state.check() {
+                commands.entity(collider).insert(Sensor);
+            } else {
+                if rapier_context
+                    .intersection_pairs_with(collider)
+                    .next()
+                    .is_some()
+                {
+                    state.in_state = true;
+                    state.stuck = true;
+                } else {
+                    commands.entity(collider).remove::<Sensor>();
+                    state.stuck = false;
+                }
+            }
+        }
+    }
+}
+
+impl Crouching {
+    pub fn start(&mut self) {
+        if !self.in_state {
+            self.in_state = true
+        }
+    }
+
+    pub fn stop(&mut self) {
+        if self.in_state {
+            self.in_state = false
+        }
+    }
+
+    pub fn check(&self) -> bool {
+        self.in_state
+    }
+
+    pub fn new() -> Self {
+        Self {
+            in_state: false,
+            stuck: false,
+        }
+    }
+}
+
+#[derive(Component)]
 pub struct Kicking {
     in_state: bool,
 }
@@ -38,7 +100,7 @@ pub fn kicking_state_change(
     input: Res<ActionState<Inputs>>,
     mut q_state: Query<(&mut Velocity, &mut GravityScale, Ref<Kicking>)>,
 ) {
-    let mut move_axis = match input.clamped_axis_pair(&Inputs::Directional) {
+    let move_axis = match input.clamped_axis_pair(&Inputs::Directional) {
         Some(data) => data.xy(),
         None => return,
     };
@@ -63,11 +125,15 @@ pub fn kicking_state_change(
 
 impl Kicking {
     pub fn start(&mut self) {
-        self.in_state = true
+        if !self.in_state {
+            self.in_state = true
+        }
     }
 
     pub fn stop(&mut self) {
-        self.in_state = false
+        if self.in_state {
+            self.in_state = false
+        }
     }
 
     pub fn check(&self) -> bool {
@@ -119,11 +185,15 @@ impl Jumping {
     }
 
     pub fn start(&mut self) {
-        self.in_state = true;
+        if !self.in_state {
+            self.in_state = true
+        };
     }
 
     pub fn stop(&mut self) {
-        self.in_state = false;
+        if self.in_state {
+            self.in_state = false
+        };
     }
 
     pub fn new(max_air_jumps: i32) -> Self {

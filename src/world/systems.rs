@@ -6,16 +6,16 @@ use super::functions::spawn_cube;
 
 pub fn startup(
     mut commands: Commands,
-    meshes: ResMut<Assets<Mesh>>,
-    materials: ResMut<Assets<ColorMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     commands.spawn(Camera2dBundle::default());
 
     // Ground
     spawn_cube(
-        commands,
-        meshes,
-        materials,
+        &mut commands,
+        &mut meshes,
+        &mut materials,
         Color::GRAY,
         Vec2 {
             x: 0.,
@@ -24,6 +24,47 @@ pub fn startup(
         Vec2 {
             x: WINDOW_WIDTH,
             y: 50.,
+        },
+    );
+    // outer walls
+    spawn_cube(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        Color::GRAY,
+        Vec2 {
+            x: WINDOW_WIDTH / 2. - 25.,
+            y: 0.,
+        },
+        Vec2 {
+            x: 50.,
+            y: WINDOW_HEIGHT,
+        },
+    );
+    spawn_cube(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        Color::GRAY,
+        Vec2 {
+            x: -WINDOW_WIDTH / 2. + 25.,
+            y: 0.,
+        },
+        Vec2 {
+            x: 50.,
+            y: WINDOW_HEIGHT,
+        },
+    );
+    // middle
+    spawn_cube(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        Color::GRAY,
+        Vec2 { x: 100., y: 110. },
+        Vec2 {
+            x: 50.,
+            y: WINDOW_HEIGHT,
         },
     );
 }

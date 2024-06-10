@@ -5,9 +5,9 @@ use bevy::{
 use bevy_rapier2d::prelude::*;
 
 pub fn spawn_cube(
-    mut commands: Commands<'_, '_>,
-    mut meshes: ResMut<'_, Assets<Mesh>>,
-    mut materials: ResMut<'_, Assets<ColorMaterial>>,
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<ColorMaterial>,
     color: Color,
     location: Vec2,
     size: Vec2,

@@ -41,24 +41,46 @@ pub struct Crouching {
 
 pub fn crouching_state_change(
     mut q_state: Query<&mut Crouching>,
-    mut q_collider: Query<Entity, With<UpperCollider>>,
+    mut q_collider: Query<(Entity, &mut CollisionGroups), With<UpperCollider>>,
     mut commands: Commands,
     rapier_context: Res<RapierContext>,
 ) {
-    for (mut state, collider) in q_state.iter_mut().zip(q_collider.iter_mut()) {
+    for (mut state, (collider, mut group)) in q_state.iter_mut().zip(q_collider.iter_mut()) {
         if state.is_changed() || state.stuck {
             if state.check() {
-                commands.entity(collider).insert(Sensor);
+                group.memberships = Group::GROUP_3;
+                // commands.entity(collider).insert(Sensor);
             } else {
+                group.memberships = Group::GROUP_2;
                 if rapier_context
-                    .intersection_pairs_with(collider)
-                    .next()
-                    .is_some()
+                    .contact_pairs_with(collider)
+                    .any(|contact_pair| {
+                        println!("waaa");
+                        // println!("{}", point);
+                        contact_pair.manifolds().any(|manifold| {
+                            if let Some(depth) = manifold
+                                .points()
+                                .map(|point| {
+                                    println!("{}", point.dist());
+                                    point.dist()
+                                })
+                                .reduce(|acc, point_dist| point_dist.max(acc))
+                            {
+                                println!("{depth}");
+                                depth > 14.
+                            } else {
+                                println!("None");
+                                false
+                            }
+                        })
+                    })
                 {
                     state.in_state = true;
                     state.stuck = true;
+                    group.memberships = Group::GROUP_3;
                 } else {
-                    commands.entity(collider).remove::<Sensor>();
+                    group.memberships = Group::GROUP_2;
+                    // commands.entity(collider).remove::<Sensor>();
                     state.stuck = false;
                 }
             }

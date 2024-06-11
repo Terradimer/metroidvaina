@@ -47,7 +47,7 @@ fn main() {
                     ..default()
                 }),
             // Physics Plugins
-            RapierDebugRenderPlugin::default(),
+            // RapierDebugRenderPlugin::default(),
             RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.),
             // Project plugins
             InputHandlerPlugin,

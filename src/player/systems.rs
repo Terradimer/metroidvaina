@@ -2,7 +2,7 @@ use bevy::{
     prelude::*,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
-use bevy_rapier2d::{dynamics::RigidBody, prelude::*};
+use bevy_rapier2d::{dynamics::RigidBody, na::ComplexField, prelude::*};
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{input::Inputs, macros::query_guard, time::resources::ScaledTime};
@@ -28,6 +28,7 @@ pub fn startup(
             Kicking::new(),
             Crouching::new(),
             Grounded::new(),
+            FacingDirection::new(),
             Jumping::new(2),
             InputFreeze::new(),
         ))
@@ -45,11 +46,19 @@ pub fn startup(
             parent.spawn((
                 SpatialBundle::from_transform(Transform::from_xyz(0., 25., 0.)),
                 UpperCollider,
+                CollisionGroups {
+                    memberships: Group::from_bits_retain(2),
+                    filters: Group::from_bits_retain(1),
+                },
                 Collider::cuboid(25., 25.),
             ));
             parent.spawn((
                 SpatialBundle::from_transform(Transform::from_xyz(0., -25., 0.)),
                 LowerCollider,
+                CollisionGroups {
+                    memberships: Group::from_bits_retain(2),
+                    filters: Group::from_bits_retain(1),
+                },
                 // Sensor,
                 Collider::cuboid(25., 25.),
             ));
@@ -74,7 +83,7 @@ pub fn horizontal_movement(
 
     let vel = &mut velocity.linvel;
 
-    if !(move_axis.x.abs() > 0.) || vel.x.signum() * move_axis.x.signum() < 0. {
+    if !(move_axis.x.abs() > 0.2) || vel.x.signum() * move_axis.x.signum() < 0. {
         vel.x -= vel.x * PLAYER_SLOWING_FACTOR * time.delta_seconds();
     }
 
@@ -118,11 +127,36 @@ pub fn jump(
     }
 }
 
+pub fn update_facing_direction(
+    input: Res<ActionState<Inputs>>,
+    mut q_player: Query<&mut FacingDirection, With<Player>>,
+) {
+    let mut direction = query_guard!(q_player.get_single_mut());
+
+    let move_axis = match input.clamped_axis_pair(&Inputs::Directional) {
+        Some(data) => data.xy(),
+        None => return,
+    };
+
+    if move_axis.x.abs() > 0.1 {
+        direction.set(move_axis.x);
+    }
+}
+
 pub fn crouching(
     input: Res<ActionState<Inputs>>,
-    mut q_player: Query<(&mut Velocity, &Grounded, &mut Crouching, &mut InputFreeze), With<Player>>,
+    mut q_player: Query<
+        (
+            &mut Velocity,
+            &FacingDirection,
+            &Grounded,
+            &mut Crouching,
+            &mut InputFreeze,
+        ),
+        With<Player>,
+    >,
 ) {
-    let (mut velocity, grounded, mut crouching, mut input_freeze) =
+    let (mut velocity, direction, grounded, mut crouching, mut input_freeze) =
         query_guard!(q_player.get_single_mut());
 
     let input_axis = match input.clamped_axis_pair(&Inputs::Directional) {
@@ -131,7 +165,7 @@ pub fn crouching(
     };
 
     if grounded.check() && input_freeze.check() {
-        if input_axis.y < 0. && input_axis.x.abs() <= 0. {
+        if input_axis.y < 0. && input_axis.x.abs() <= 0.2 {
             crouching.start();
         } else {
             crouching.stop();
@@ -143,8 +177,8 @@ pub fn crouching(
         && input.just_pressed(&Inputs::Jump)
         && input_freeze.check()
     {
-        input_freeze.set(0.3);
-        velocity.linvel.x = 500.;
+        input_freeze.set(0.6);
+        velocity.linvel.x = 500. * direction.get();
     }
 }
 

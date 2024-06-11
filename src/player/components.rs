@@ -14,6 +14,23 @@ pub struct UpperCollider;
 pub struct LowerCollider;
 
 #[derive(Component)]
+pub struct FacingDirection(f32);
+
+impl FacingDirection {
+    pub fn new() -> Self {
+        FacingDirection(1.)
+    }
+
+    pub fn set(&mut self, dir: f32) {
+        self.0 = dir.signum();
+    }
+
+    pub fn get(&self) -> f32 {
+        self.0.signum()
+    }
+}
+
+#[derive(Component)]
 pub struct InputFreeze(Timer);
 
 impl InputFreeze {

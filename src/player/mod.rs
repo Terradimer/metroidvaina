@@ -25,7 +25,13 @@ impl Plugin for PlayerPlugin {
             (
                 update_contact,
                 tick_input_freeze,
-                (horizontal_movement, jump, crouching, kicking),
+                update_facing_direction,
+                (
+                    horizontal_movement,
+                    jump,
+                    crouching.before(kicking),
+                    kicking,
+                ),
                 (
                     kicking_state_change,
                     jumping_state_change,

@@ -100,12 +100,13 @@ pub fn jump(
             &mut Kicking,
             &mut Jumping,
             &Grounded,
+            &Crouching,
             &InputFreeze,
         ),
         With<Player>,
     >,
 ) {
-    let (velocity, mut kicking, mut jumping, grounded, input_freeze) =
+    let (velocity, mut kicking, mut jumping, grounded, crouching, input_freeze) =
         query_guard!(q_player.get_single_mut());
 
     if grounded.check() {
@@ -116,7 +117,7 @@ pub fn jump(
         return;
     }
 
-    if input.just_pressed(&Inputs::Jump) && jumping.can_jump() && !kicking.is_changed() {
+    if input.just_pressed(&Inputs::Jump) && jumping.can_jump() && !kicking.is_changed() && !crouching.check() {
         jumping.start();
         kicking.stop();
         return;
@@ -214,16 +215,17 @@ pub fn update_contact(
     let (p_entity, mut s_grounded) =
         query_guard!(q_collider.get_single(), q_player.get_single_mut());
 
-    s_grounded.stop();
-
     for contact_pair in rapier_context
         .contact_pairs_with(p_entity)
         .filter(|contact_pair| contact_pair.has_any_active_contacts())
     {
         for normal in contact_pair.manifolds().map(|manifold| manifold.normal()) {
             if normal.y < 0. {
-                s_grounded.start() // early return out
+                s_grounded.start();
+                return
             }
         }
     }
+    
+    s_grounded.stop();
 }

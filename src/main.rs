@@ -6,10 +6,7 @@ use bevy::{
     },
     window::{PresentMode::AutoNoVsync, WindowResolution},
 };
-use bevy_rapier2d::{
-    plugin::{NoUserData, RapierPhysicsPlugin},
-    render::RapierDebugRenderPlugin,
-};
+use bevy_rapier2d::plugin::{NoUserData, RapierPhysicsPlugin};
 use input::InputHandlerPlugin;
 use player::PlayerPlugin;
 use time::TimeScalarPlugin;

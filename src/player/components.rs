@@ -14,6 +14,9 @@ pub struct UpperCollider;
 pub struct LowerCollider;
 
 #[derive(Component)]
+pub struct StuckCheck;
+
+#[derive(Component)]
 pub struct FacingDirection(f32);
 
 impl FacingDirection {

@@ -1,10 +1,14 @@
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
+use itertools::izip;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::input::Inputs;
 
-use super::{components::UpperCollider, PLAYER_KICK_SPEED};
+use super::{
+    components::{StuckCheck, UpperCollider},
+    PLAYER_KICK_SPEED,
+};
 
 #[derive(Component)]
 pub struct Grounded {
@@ -41,46 +45,28 @@ pub struct Crouching {
 
 pub fn crouching_state_change(
     mut q_state: Query<&mut Crouching>,
-    mut q_collider: Query<(Entity, &mut CollisionGroups), With<UpperCollider>>,
-    mut commands: Commands,
+    mut q_collider: Query<&mut CollisionGroups, With<UpperCollider>>,
+    q_stuck: Query<Entity, With<StuckCheck>>,
     rapier_context: Res<RapierContext>,
 ) {
-    for (mut state, (collider, mut group)) in q_state.iter_mut().zip(q_collider.iter_mut()) {
+    for (mut state, mut group, stuck_check) in izip!(
+        &mut q_state.iter_mut(),
+        &mut q_collider.iter_mut(),
+        q_stuck.iter()
+    ) {
         if state.is_changed() || state.stuck {
             if state.check() {
                 group.memberships = Group::GROUP_3;
-                // commands.entity(collider).insert(Sensor);
             } else {
-                group.memberships = Group::GROUP_2;
                 if rapier_context
-                    .contact_pairs_with(collider)
-                    .any(|contact_pair| {
-                        println!("waaa");
-                        // println!("{}", point);
-                        contact_pair.manifolds().any(|manifold| {
-                            if let Some(depth) = manifold
-                                .points()
-                                .map(|point| {
-                                    println!("{}", point.dist());
-                                    point.dist()
-                                })
-                                .reduce(|acc, point_dist| point_dist.max(acc))
-                            {
-                                println!("{depth}");
-                                depth > 14.
-                            } else {
-                                println!("None");
-                                false
-                            }
-                        })
-                    })
+                    .intersection_pairs_with(stuck_check)
+                    .any(|(_, _, intersecting)| intersecting)
                 {
                     state.in_state = true;
                     state.stuck = true;
                     group.memberships = Group::GROUP_3;
                 } else {
                     group.memberships = Group::GROUP_2;
-                    // commands.entity(collider).remove::<Sensor>();
                     state.stuck = false;
                 }
             }

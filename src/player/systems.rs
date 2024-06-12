@@ -2,7 +2,7 @@ use bevy::{
     prelude::*,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
-use bevy_rapier2d::{dynamics::RigidBody, na::ComplexField, prelude::*};
+use bevy_rapier2d::{dynamics::RigidBody, prelude::*};
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{input::Inputs, macros::query_guard, time::resources::ScaledTime};
@@ -62,6 +62,16 @@ pub fn startup(
                 // Sensor,
                 Collider::cuboid(25., 25.),
             ));
+            parent.spawn((
+                SpatialBundle::from_transform(Transform::from_xyz(0., 25., 0.)),
+                StuckCheck,
+                Sensor,
+                CollisionGroups {
+                    memberships: Group::from_bits_retain(2),
+                    filters: Group::from_bits_retain(1),
+                },
+                Collider::cuboid(15., 25.),
+            ));
         });
 }
 
@@ -100,13 +110,12 @@ pub fn jump(
             &mut Kicking,
             &mut Jumping,
             &Grounded,
-            &Crouching,
             &InputFreeze,
         ),
         With<Player>,
     >,
 ) {
-    let (velocity, mut kicking, mut jumping, grounded, crouching, input_freeze) =
+    let (velocity, mut kicking, mut jumping, grounded, input_freeze) =
         query_guard!(q_player.get_single_mut());
 
     if grounded.check() {
@@ -117,7 +126,7 @@ pub fn jump(
         return;
     }
 
-    if input.just_pressed(&Inputs::Jump) && jumping.can_jump() && !kicking.is_changed() && !crouching.check() {
+    if input.just_pressed(&Inputs::Jump) && jumping.can_jump() && !kicking.is_changed() {
         jumping.start();
         kicking.stop();
         return;
@@ -215,17 +224,16 @@ pub fn update_contact(
     let (p_entity, mut s_grounded) =
         query_guard!(q_collider.get_single(), q_player.get_single_mut());
 
+    s_grounded.stop();
+
     for contact_pair in rapier_context
         .contact_pairs_with(p_entity)
         .filter(|contact_pair| contact_pair.has_any_active_contacts())
     {
         for normal in contact_pair.manifolds().map(|manifold| manifold.normal()) {
             if normal.y < 0. {
-                s_grounded.start();
-                return
+                s_grounded.start() // early return out
             }
         }
     }
-    
-    s_grounded.stop();
 }

@@ -110,6 +110,7 @@ pub fn jump(
             &mut Kicking,
             &mut Jumping,
             &Grounded,
+            &Crouching,
             &InputFreeze,
         ),
         With<Player>,
@@ -126,7 +127,7 @@ pub fn jump(
         return;
     }
 
-    if input.just_pressed(&Inputs::Jump) && jumping.can_jump() && !kicking.is_changed() {
+    if input.just_pressed(&Inputs::Jump) && jumping.can_jump() && !kicking.is_changed() && !crouching.check() {
         jumping.start();
         kicking.stop();
         return;
@@ -232,8 +233,11 @@ pub fn update_contact(
     {
         for normal in contact_pair.manifolds().map(|manifold| manifold.normal()) {
             if normal.y < 0. {
-                s_grounded.start() // early return out
+                s_grounded.start();
+                return
             }
         }
     }
+    
+    s_grounded.stop();
 }

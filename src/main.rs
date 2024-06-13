@@ -10,6 +10,7 @@ use bevy_rapier2d::plugin::{NoUserData, RapierPhysicsPlugin};
 use input::InputHandlerPlugin;
 use player::PlayerPlugin;
 use time::TimeScalarPlugin;
+use ui::UiPlugin;
 use world::WorldPlugin;
 
 mod camera;
@@ -17,6 +18,7 @@ mod input;
 mod macros;
 mod player;
 mod time;
+mod ui;
 mod world;
 
 pub const WINDOW_WIDTH: f32 = 1920. * 0.75;
@@ -46,11 +48,15 @@ fn main() {
             // Physics Plugins
             // RapierDebugRenderPlugin::default(),
             RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.),
+            // Ui Plugins
+            // bevy_egui::EguiPlugin,
+            // bevy_framepace::FramepacePlugin,
             // Project plugins
             InputHandlerPlugin,
             TimeScalarPlugin,
             WorldPlugin,
             PlayerPlugin,
+            UiPlugin,
         ))
         .run();
 }

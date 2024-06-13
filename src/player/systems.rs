@@ -116,7 +116,7 @@ pub fn jump(
         With<Player>,
     >,
 ) {
-    let (velocity, mut kicking, mut jumping, grounded, input_freeze) =
+    let (velocity, mut kicking, mut jumping, grounded, crouching, input_freeze) =
         query_guard!(q_player.get_single_mut());
 
     if grounded.check() {
@@ -238,6 +238,6 @@ pub fn update_contact(
             }
         }
     }
-    
+
     s_grounded.stop();
 }

@@ -1,3 +1,14 @@
+mod behavior;
+mod camera;
+mod collision_groups;
+mod enemies;
+mod input;
+mod macros;
+mod player;
+mod time;
+mod world;
+
+use behavior::BehaviorPlugin;
 use bevy::{
     prelude::*,
     render::{
@@ -6,18 +17,16 @@ use bevy::{
     },
     window::{PresentMode::AutoNoVsync, WindowResolution},
 };
-use bevy_rapier2d::plugin::{NoUserData, RapierPhysicsPlugin};
+use bevy_asset_loader::prelude::*;
+use bevy_rapier2d::{
+    plugin::{NoUserData, RapierPhysicsPlugin},
+    render::RapierDebugRenderPlugin,
+};
+use enemies::EnemiesPlugin;
 use input::InputHandlerPlugin;
 use player::PlayerPlugin;
 use time::TimeScalarPlugin;
 use world::WorldPlugin;
-
-mod camera;
-mod input;
-mod macros;
-mod player;
-mod time;
-mod world;
 
 pub const WINDOW_WIDTH: f32 = 1920. * 0.75;
 pub const WINDOW_HEIGHT: f32 = 1080. * 0.75;
@@ -42,15 +51,31 @@ fn main() {
                         ..default()
                     }),
                     ..default()
-                }),
+                })
+                .set(ImagePlugin::default_nearest()),
             // Physics Plugins
-            // RapierDebugRenderPlugin::default(),
+            RapierDebugRenderPlugin::default(),
             RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.),
+        ))
+        .init_state::<GameState>()
+        .add_loading_state(
+            LoadingState::new(GameState::Loading).continue_to_state(GameState::Playing),
+        )
+        .add_plugins((
             // Project plugins
             InputHandlerPlugin,
             TimeScalarPlugin,
             WorldPlugin,
             PlayerPlugin,
+            EnemiesPlugin,
+            BehaviorPlugin,
         ))
         .run();
+}
+
+#[derive(PartialEq, Eq, Clone, Debug, Hash, Default, States)]
+enum GameState {
+    #[default]
+    Loading,
+    Playing,
 }

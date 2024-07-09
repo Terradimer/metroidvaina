@@ -4,6 +4,8 @@ use bevy::{
 };
 use bevy_rapier2d::prelude::*;
 
+use crate::collision_groups::Groups;
+
 pub fn spawn_cube(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,
@@ -19,10 +21,7 @@ pub fn spawn_cube(
             transform: Transform::from_translation(location.extend(0.)),
             ..default()
         },
-        CollisionGroups {
-            memberships: Group::from_bits_retain(1),
-            filters: Group::from_bits_retain(2),
-        },
+        Groups::environment(),
         Collider::cuboid(size.x / 2., size.y / 2.),
     ));
 }

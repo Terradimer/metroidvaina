@@ -1,20 +1,17 @@
 use bevy::prelude::*;
 
-use self::{
-    components::tick_input_freeze,
-    state::{crouching_state_change, jumping_state_change, kicking_state_change},
-    systems::*,
-};
+use crate::GameState;
 
-mod components;
+use self::systems::*;
+
+pub mod components;
 mod resources;
-mod state;
+pub mod state;
 mod systems;
 
 pub struct PlayerPlugin;
 
 pub const PLAYER_MAX_SPEED: f32 = 500.;
-pub const PLAYER_KICK_SPEED: f32 = 2200.;
 pub const PLAYER_SLOWING_FACTOR: f32 = 4.3;
 pub const PLAYER_ACCELERATION_FACTOR: f32 = 3.;
 
@@ -24,21 +21,11 @@ impl Plugin for PlayerPlugin {
             Update,
             (
                 update_contact,
-                tick_input_freeze,
                 update_facing_direction,
-                (
-                    horizontal_movement,
-                    jump,
-                    crouching.before(kicking),
-                    kicking,
-                ),
-                (
-                    kicking_state_change,
-                    jumping_state_change,
-                    crouching_state_change,
-                ),
+                (horizontal_movement).after(update_contact),
             )
-                .chain(),
+                .chain()
+                .run_if(in_state(GameState::Playing)),
         );
     }
 }

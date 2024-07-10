@@ -6,7 +6,9 @@ use bevy_rapier2d::{dynamics::RigidBody, prelude::*};
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
-    behavior::{crouch::Crouch, demo_slash::DemoSlash, jump::Jumping, kick::Kick, slide::Slide},
+    behavior::{
+        crouch::Crouch, demo_slash::DemoSlash, jump::Jumping, kick::Kick, shot::Shot, slide::Slide,
+    },
     collision_groups::Groups,
     input::{resources::InputBlocker, Inputs},
     macros::query_guard,
@@ -73,6 +75,7 @@ pub fn startup(
             Slide::new(700.),
             Jumping::new(600.),
             Kick::new(),
+            Shot::new(),
         ))
         .add_child(collider_ref)
         .add_child(hurtbox_ref);

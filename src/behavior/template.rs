@@ -63,7 +63,7 @@ impl Behavior {
 }
 
 // Here is where you define the logic for behaviors
-pub fn behavior_player_handler() {
+pub fn behaviorname_player_behavior() {
     // you normally want to use a for loop for behavior system logic
     for (components ...) in _query_.iter_mut() {
         // update your timer externally from the stage logic

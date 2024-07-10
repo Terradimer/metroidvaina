@@ -7,7 +7,7 @@ impl Groups {
     const INACTIVE: Group = Group::GROUP_2;
     pub const PLAYER: Group = Group::GROUP_3;
     pub const ENEMY: Group = Group::GROUP_4;
-    const ENVIRONMENT: Group = Group::GROUP_5;
+    pub const ENVIRONMENT: Group = Group::GROUP_5;
     const COLLISION: Group = Group::GROUP_6;
     const HIT: Group = Group::GROUP_7;
 
@@ -44,7 +44,7 @@ impl Groups {
     pub fn environment() -> CollisionGroups {
         CollisionGroups {
             memberships: Self::ENVIRONMENT,
-            filters: Self::COLLISION,
+            filters: Self::COLLISION | Self::HIT,
         }
     }
 }

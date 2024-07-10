@@ -2,13 +2,14 @@ use bevy::app::Plugin;
 
 use self::{
     crouch::CrouchBehavior, demo_slash::SlashingBehavior, jump::JumpBehavior,
-    kick::KickingBehavior, slide::SlidingBehavior,
+    kick::KickingBehavior, shot::ShotBehavior, slide::SlidingBehavior,
 };
 
 pub mod crouch;
 pub mod demo_slash;
 pub mod jump;
 pub mod kick;
+pub mod shot;
 pub mod slide;
 
 pub struct BehaviorPlugin;
@@ -21,6 +22,7 @@ impl Plugin for BehaviorPlugin {
             JumpBehavior,
             SlashingBehavior,
             CrouchBehavior,
+            ShotBehavior,
         ));
     }
 }

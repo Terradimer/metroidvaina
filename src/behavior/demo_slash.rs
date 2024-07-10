@@ -5,6 +5,7 @@ use bevy_rapier2d::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
+    collision_groups::Groups,
     input::{resources::InputBlocker, Inputs},
     player::{
         components::{FacingDirection, Player},
@@ -96,10 +97,7 @@ impl DemoSlash {
                         )),
                         Collider::cuboid(collider_size, collider_size),
                         Sensor,
-                        CollisionGroups {
-                            memberships: Group::from_bits_retain(8),
-                            filters: Group::from_bits_retain(4),
-                        },
+                        Groups::hitbox(Groups::ENEMY),
                     ))
                     .id(),
             );
@@ -126,7 +124,7 @@ impl DemoSlash {
     }
 }
 
-pub fn demo_slash_player_handler(
+pub fn demo_slash_player_behavior(
     input: Res<ActionState<Inputs>>,
     mut input_blocker: ResMut<InputBlocker>,
     mut q_state: Query<
@@ -199,6 +197,6 @@ pub struct SlashingBehavior;
 
 impl Plugin for SlashingBehavior {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, demo_slash_player_handler);
+        app.add_systems(Update, demo_slash_player_behavior);
     }
 }

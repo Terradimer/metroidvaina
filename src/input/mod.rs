@@ -37,6 +37,8 @@ impl Inputs {
 
         input_map.insert(Self::Primary, KeyCode::KeyV);
 
+        input_map.insert(Self::Secondary, KeyCode::KeyB);
+
         input_map
     }
 

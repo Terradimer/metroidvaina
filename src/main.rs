@@ -8,6 +8,9 @@ mod player;
 mod time;
 mod world;
 
+use avian2d::debug_render::PhysicsDebugPlugin;
+use avian2d::prelude::Gravity;
+use avian2d::PhysicsPlugins;
 use behavior::BehaviorPlugin;
 use bevy::{
     prelude::*,
@@ -18,10 +21,6 @@ use bevy::{
     window::{PresentMode::AutoNoVsync, WindowResolution},
 };
 use bevy_asset_loader::prelude::*;
-use bevy_rapier2d::{
-    plugin::{NoUserData, RapierPhysicsPlugin},
-    render::RapierDebugRenderPlugin,
-};
 use enemies::EnemiesPlugin;
 use input::InputHandlerPlugin;
 use player::PlayerPlugin;
@@ -53,15 +52,14 @@ fn main() {
                     ..default()
                 })
                 .set(ImagePlugin::default_nearest()),
-            // Physics Plugins
-            RapierDebugRenderPlugin::default(),
-            RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.),
         ))
         .init_state::<GameState>()
         .add_loading_state(
             LoadingState::new(GameState::Loading).continue_to_state(GameState::Playing),
         )
         .add_plugins((
+            PhysicsPlugins::default().with_length_unit(100.),
+            PhysicsDebugPlugin::default(),
             // Project plugins
             InputHandlerPlugin,
             TimeScalarPlugin,
@@ -70,6 +68,8 @@ fn main() {
             EnemiesPlugin,
             BehaviorPlugin,
         ))
+        // .insert_resource(Time::<Physics>::from_timestep(avian2d::schedule::TimestepMode::Variable { max_delta: () }))
+        .insert_resource(Gravity(Vec2::NEG_Y * 1000.0))
         .run();
 }
 

@@ -1,50 +1,47 @@
-use bevy_rapier2d::geometry::{CollisionGroups, Group};
+use avian2d::collision::CollisionLayers;
+use avian2d::prelude::PhysicsLayer;
+
+#[derive(PhysicsLayer)]
+pub enum Group {
+    NONE,
+    INACTIVE,
+    PLAYER,
+    ENEMY,
+    ENVIRONMENT,
+    COLLISION,
+    HIT,
+}
 
 pub struct Groups;
 
 impl Groups {
-    const NONE: Group = Group::GROUP_1; // Do not use this for anything other than for empty filters
-    const INACTIVE: Group = Group::GROUP_2;
-    pub const PLAYER: Group = Group::GROUP_3;
-    pub const ENEMY: Group = Group::GROUP_4;
-    pub const ENVIRONMENT: Group = Group::GROUP_5;
-    const COLLISION: Group = Group::GROUP_6;
-    const HIT: Group = Group::GROUP_7;
+    const NONE: Group = Group::NONE; // Do not use this for anything other than for empty filters
+    const INACTIVE: Group = Group::INACTIVE;
+    pub const PLAYER: Group = Group::PLAYER;
+    pub const ENEMY: Group = Group::ENEMY;
+    pub const ENVIRONMENT: Group = Group::ENVIRONMENT;
+    const COLLISION: Group = Group::COLLISION;
+    const HIT: Group = Group::HIT;
 
     // Helper methods to create collision groups for different entities
 
-    pub fn inactive() -> CollisionGroups {
-        CollisionGroups {
-            memberships: Self::INACTIVE,
-            filters: Self::NONE,
-        }
+    pub fn inactive() -> CollisionLayers {
+        CollisionLayers::new(Self::INACTIVE, Self::NONE)
     }
 
-    pub fn hitbox(target: Group) -> CollisionGroups {
-        CollisionGroups {
-            memberships: Self::HIT,
-            filters: target,
-        }
+    pub fn hitbox(target: Group) -> CollisionLayers {
+        CollisionLayers::new(Self::HIT, target)
     }
 
-    pub fn hurtbox(target: Group) -> CollisionGroups {
-        CollisionGroups {
-            memberships: target,
-            filters: Self::HIT,
-        }
+    pub fn hurtbox(target: Group) -> CollisionLayers {
+        CollisionLayers::new(target, Self::HIT)
     }
 
-    pub fn collision() -> CollisionGroups {
-        CollisionGroups {
-            memberships: Self::COLLISION,
-            filters: Self::ENVIRONMENT,
-        }
+    pub fn collision() -> CollisionLayers {
+        CollisionLayers::new(Self::COLLISION, Self::ENVIRONMENT)
     }
 
-    pub fn environment() -> CollisionGroups {
-        CollisionGroups {
-            memberships: Self::ENVIRONMENT,
-            filters: Self::COLLISION | Self::HIT,
-        }
+    pub fn environment() -> CollisionLayers {
+        CollisionLayers::new(Self::ENVIRONMENT, [Self::COLLISION, Self::HIT])
     }
 }

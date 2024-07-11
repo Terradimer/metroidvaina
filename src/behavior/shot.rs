@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_rapier2d::{dynamics::RigidBody, prelude::*};
+use avian2d::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
@@ -40,22 +40,23 @@ impl Shot {
         commands.spawn((
             SpatialBundle::from_transform(Transform::from_translation(origin)),
             Projectile,
-            Groups::hitbox(Groups::ENEMY),
-            Collider::ball(6.),
+            Collider::circle(6.),
             Sensor,
-            Ccd::enabled(),
+            Groups::hitbox(Groups::ENEMY),
+            // Ccd::enabled(),
         ));
     }
 }
 
 pub fn projectile_behavior(
     mut commands: Commands,
-    rapier_context: Res<RapierContext>,
     mut q_bullet: Query<(Entity, &mut Transform), With<Projectile>>,
     time: Res<ScaledTime>,
+    q_colliding_entities: Query<&CollidingEntities>,
 ) {
-    for (collider, mut tranform) in q_bullet.iter_mut() {
-        tranform.translation.x += 300. * time.delta_seconds();
+    for (collider, mut tranform) in q_bullet.iter() {
+        // tranform.translation.x += 300. * time.delta_seconds();
+        
         for (entity1, entity2, intersects) in rapier_context.intersection_pairs_with(collider)
         // .filter(|(_, _, intersecting)| *intersecting)
         {

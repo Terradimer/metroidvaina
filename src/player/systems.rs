@@ -2,12 +2,20 @@ use bevy::{
     prelude::*,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
-use bevy_rapier2d::{dynamics::RigidBody, prelude::*};
 use leafwing_input_manager::action_state::ActionState;
+use avian2d::prelude::*;
 
+use crate::behavior::crouch::Crouch;
+use crate::behavior::jump::Jumping;
+use crate::behavior::slide::Slide;
 use crate::{
     behavior::{
-        crouch::Crouch, demo_slash::DemoSlash, jump::Jumping, kick::Kick, shot::Shot, slide::Slide,
+        // crouch::Crouch, 
+        demo_slash::DemoSlash, 
+        // jump::Jumping, 
+        // kick::Kick, 
+        // shot::Shot, 
+        // slide::Slide,
     },
     collision_groups::Groups,
     input::{resources::InputBlocker, Inputs},
@@ -29,7 +37,7 @@ pub fn startup(
         .spawn((
             SpatialBundle::default(),
             Groups::collision(),
-            Collider::cuboid(width / 2., height / 2.),
+            Collider::rectangle(width, height),
         ))
         .id();
 
@@ -37,7 +45,7 @@ pub fn startup(
         .spawn((
             SpatialBundle::default(),
             Groups::hurtbox(Groups::PLAYER),
-            Collider::cuboid(width / 2., height / 2.),
+            Collider::rectangle(width, height),
         ))
         .id();
 
@@ -51,7 +59,7 @@ pub fn startup(
         .spawn((
             MaterialMesh2dBundle {
                 mesh: Mesh2dHandle(meshes.add(Rectangle::new(50., 100.0))),
-                material: materials.add(Color::BLUE),
+                material: materials.add(Color::srgb(0., 0., 1.)),
                 transform: Transform::from_translation(Vec3::ZERO),
                 ..default()
             },
@@ -64,7 +72,9 @@ pub fn startup(
             RigidBody::Dynamic,
             GravityScale(1.),
             Friction::new(0.),
-            Velocity::default(),
+            Restitution::new(0.).with_combine_rule(
+                CoefficientCombine::Min),
+            LinearVelocity::default(),
             LockedAxes::ROTATION_LOCKED,
         ))
         .insert((
@@ -72,8 +82,8 @@ pub fn startup(
             DemoSlash::new(),
             Slide::new(700.),
             Jumping::new(600.),
-            Kick::new(),
-            Shot::new(),
+            // Kick::new(),
+            // Shot::new(),
         ))
         .add_child(collider_ref)
         .add_child(hurtbox_ref);
@@ -82,7 +92,9 @@ pub fn startup(
 pub fn horizontal_movement(
     input: Res<ActionState<Inputs>>,
     input_blocker: Res<InputBlocker>,
-    mut q_player: Query<(&mut Velocity, &Crouch), With<Player>>,
+    mut q_player: Query<(&mut LinearVelocity, 
+        &Crouch
+    ), With<Player>>,
     time: Res<ScaledTime>,
 ) {
     let move_axis = match input.clamped_axis_pair(&Inputs::Directional) {
@@ -90,9 +102,9 @@ pub fn horizontal_movement(
         None => return,
     };
 
-    let (mut velocity, crouching) = query_guard!(q_player.get_single_mut());
-
-    let vel = &mut velocity.linvel;
+    let (mut vel,
+         crouching
+        ) = query_guard!(q_player.get_single_mut());
 
     if !(move_axis.x.abs() > 0.2)
         || vel.x.signum() * move_axis.x.signum() < 0.
@@ -129,17 +141,19 @@ pub fn update_facing_direction(
 
 pub fn update_contact(
     mut q_player: Query<(&mut Grounded, &Body), With<Player>>,
-    rapier_context: Res<RapierContext>,
+    collisions: Res<Collisions>,
 ) {
     let (mut grounded, p_body) = query_guard!(q_player.get_single_mut());
 
     grounded.stop();
 
-    for contact_pair in rapier_context
-        .contact_pairs_with(p_body.collider_ref)
-        .filter(|contact_pair| contact_pair.has_any_active_contacts())
+    for collision in collisions.collisions_with_entity(p_body.collider_ref)
     {
-        for normal in contact_pair.manifolds().map(|manifold| manifold.normal()) {
+        for normal in collision.manifolds.iter().map(|manifold| if collision.entity1 == p_body.collider_ref {
+            manifold.normal1
+        } else {
+            manifold.normal2
+        }) {
             if normal.y < 0. {
                 grounded.start() // this already early returns
             }

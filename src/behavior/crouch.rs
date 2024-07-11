@@ -1,10 +1,7 @@
 use crate::{collision_groups::Groups, player::components::Grounded};
 use bevy::prelude::*;
-use bevy_rapier2d::{
-    geometry::{Collider, CollisionGroups, Sensor},
-    plugin::RapierContext,
-};
 use leafwing_input_manager::action_state::ActionState;
+use avian2d::prelude::*;
 
 use crate::{
     input::{resources::InputBlocker, Inputs},
@@ -47,7 +44,7 @@ impl Crouch {
             .spawn((
                 SpatialBundle::from_transform(Transform::from_xyz(0., -height / 4., 0.)),
                 Groups::collision(),
-                Collider::cuboid(width / 2., height / 4.),
+                Collider::rectangle(width, height / 2.),
             ))
             .id();
 
@@ -69,31 +66,12 @@ impl Crouch {
                 })),
                 Sensor,
                 Groups::collision(),
-                Collider::cuboid(width / 4., height / 4.),
+                Collider::rectangle(width / 2., height / 2.),
             ))
             .id();
 
         commands.entity(parent).add_child(collider);
         collider
-    }
-
-    pub fn get_collision(&self, rapier_context: &RapierContext) -> bool {
-        let collider_ref = match &self.stage {
-            Stage::Crouching {
-                stuck_check_collider,
-                ..
-            } => stuck_check_collider,
-            _ => return false,
-        };
-
-        for (_, _, _) in rapier_context
-            .intersection_pairs_with(*collider_ref)
-            .filter(|(_, _, intersecting)| *intersecting)
-        {
-            return true;
-        }
-
-        false
     }
 
     pub fn check(&self) -> bool {
@@ -108,9 +86,10 @@ pub fn crouching_behavior_player(
     input: Res<ActionState<Inputs>>,
     input_blocker: Res<InputBlocker>,
     mut q_player: Query<(Entity, &Grounded, &mut Body, &mut Crouch, Option<&Slide>), With<Player>>,
-    mut q_collider: Query<&mut CollisionGroups>,
+    mut q_collider: Query<&mut CollisionLayers>,
     mut commands: Commands,
-    rapier_context: Res<RapierContext>,
+    collisions: Res<Collisions>,
+
 ) {
     let axis_data = match input.clamped_axis_pair(&Inputs::Directional) {
         Some(data) => data.xy(),
@@ -127,7 +106,7 @@ pub fn crouching_behavior_player(
         } else {
             input_crouching && grounded.check()
         };
-
+        
         match &state.stage {
             Stage::Standing if trying_crouch => {
                 let Ok(mut collision_group) = q_collider.get_mut(body.collider_ref) else {
@@ -159,7 +138,7 @@ pub fn crouching_behavior_player(
                 stuck_check_collider,
                 collider_storage,
             } if !trying_crouch => {
-                if !state.get_collision(&rapier_context) {
+                if collisions.collisions_with_entity(*stuck_check_collider).next().is_none() {
                     commands.entity(body.collider_ref).despawn();
                     commands.entity(*stuck_check_collider).despawn();
 

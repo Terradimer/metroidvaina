@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
-use bevy_rapier2d::{dynamics::Velocity, prelude::*};
+use avian2d::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
@@ -70,7 +70,7 @@ impl Slide {
                     y: -height / 3.,
                     z: 0.,
                 })),
-                Collider::cuboid(height / 4., height / 8.),
+                Collider::rectangle(height / 2., height / 4.),
                 Sensor,
                 Groups::hitbox(Groups::ENEMY),
             ))
@@ -78,25 +78,6 @@ impl Slide {
 
         commands.entity(parent).add_child(collider);
         collider
-    }
-
-    pub fn get_collision(&self, rapier_context: &RapierContext) -> Option<Entity> {
-        let collider = match &self.stage {
-            Stage::Accelerate { collider } => collider,
-            _ => return None,
-        };
-
-        for (entity1, entity2, _) in rapier_context
-            .intersection_pairs_with(*collider)
-            .filter(|(_, _, intersecting)| *intersecting)
-        {
-            if entity1 != *collider {
-                return Some(entity1);
-            } else {
-                return Some(entity2);
-            }
-        }
-        None
     }
 }
 
@@ -106,7 +87,7 @@ fn sliding_handler_player(
     mut q_player: Query<
         (
             Entity,
-            &mut Velocity,
+            &mut LinearVelocity,
             &FacingDirection,
             &Crouch,
             &Body,
@@ -114,9 +95,9 @@ fn sliding_handler_player(
         ),
         With<Player>,
     >,
-    rapier_context: Res<RapierContext>,
     time: Res<ScaledTime>,
     mut commands: Commands,
+    q_colliding_entities: Query<&CollidingEntities>,
 ) {
     for (entity, mut velocity, direction, crouching, body, mut state) in q_player.iter_mut() {
         let timer_finished = state.stage_timer.tick(time.delta).finished();
@@ -142,15 +123,15 @@ fn sliding_handler_player(
                 commands.entity(collider).despawn();
                 state.set_stage(Stage::Settle);
             }
-            Stage::Accelerate { .. } => {
-                velocity.linvel.x = state.speed * direction.get();
+            Stage::Accelerate { collider } => {
+                velocity.x = state.speed * direction.get();
 
                 if state.has_hit {
                     return;
                 }
 
-                if let Some(other) = state.get_collision(&rapier_context) {
-                    println!("Slide-kicked into: {:?}", other);
+                if let Some(other) = q_colliding_entities.get(collider).ok().and_then(|x| x.0.iter().next()) {
+                    println!("Slide-kicked into: {other:?}");
                     state.has_hit = true;
                 }
             }

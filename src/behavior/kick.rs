@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_rapier2d::prelude::*;
+use avian2d::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
@@ -48,31 +48,12 @@ impl Kick {
                     0.,
                 )),
                 Groups::hitbox(Groups::ENEMY),
-                Collider::cuboid(width / 2., height / 4.),
+                Collider::rectangle(width, height / 2.),
                 Sensor,
             ))
             .id();
         commands.entity(parent).add_child(collider);
         collider
-    }
-
-    pub fn get_collision(&self, rapier_context: &RapierContext) -> Option<Entity> {
-        let collider = match self.stage {
-            Stage::Dormant => return None,
-            Stage::Active { collider } => collider,
-        };
-
-        for (entity1, entity2, _) in rapier_context
-            .intersection_pairs_with(collider)
-            .filter(|(_, _, intersecting)| *intersecting)
-        {
-            if entity1 != collider {
-                return Some(entity1);
-            } else {
-                return Some(entity2);
-            }
-        }
-        None
     }
 }
 
@@ -82,7 +63,7 @@ pub fn kicking_behavior_player(
     mut q_state: Query<
         (
             Entity,
-            &mut Velocity,
+            &mut LinearVelocity,
             &mut Jumping,
             &mut Kick,
             &Body,
@@ -90,16 +71,15 @@ pub fn kicking_behavior_player(
         ),
         With<Player>,
     >,
-    rapier_context: Res<RapierContext>,
     mut commands: Commands,
+    q_colliding_entities: Query<&CollidingEntities>,
 ) {
     let move_axis = match input.clamped_axis_pair(&Inputs::Directional) {
         Some(data) => data.xy(),
         None => return,
     };
 
-    for (entity, mut velocity, mut jumping, mut state, body, grounded) in q_state.iter_mut() {
-        let vel = &mut velocity.linvel;
+    for (entity, mut vel, mut jumping, mut state, body, grounded) in q_state.iter_mut() {
         match state.stage {
             Stage::Dormant => {
                 if input.just_pressed(&Inputs::Jump)
@@ -125,12 +105,12 @@ pub fn kicking_behavior_player(
                             state.kick_speed * move_axis.x.abs().ceil().copysign(move_axis.x) * 1.1;
                     }
 
-                    vel.y = -state.kick_speed;
-                    *vel = vel.normalize() * vel.length();
+                    (*vel).y = -state.kick_speed;
+                    *vel = avian2d::prelude::LinearVelocity(vel.normalize() * vel.length());
                 }
             }
             Stage::Active { collider } => {
-                if let Some(other) = state.get_collision(&rapier_context) {
+                if let Some(other) = q_colliding_entities.get(collider).ok().and_then(|x| x.0.iter().next()) {
                     println!("Kicked: {other:?}");
                     state.stage = Stage::Dormant;
                     input_blocker.clear();

@@ -2,7 +2,7 @@ use bevy::{
     prelude::*,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
-use bevy_rapier2d::prelude::*;
+use avian2d::prelude::*;
 
 use crate::collision_groups::Groups;
 
@@ -22,6 +22,7 @@ pub fn spawn_cube(
             ..default()
         },
         Groups::environment(),
-        Collider::cuboid(size.x / 2., size.y / 2.),
+        RigidBody::Static,
+        Collider::rectangle(size.x, size.y),
     ));
 }

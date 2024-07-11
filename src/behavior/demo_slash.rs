@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
-use bevy_rapier2d::prelude::*;
+use avian2d::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
@@ -92,7 +92,7 @@ impl DemoSlash {
                                 }
                             },
                         )),
-                        Collider::cuboid(collider_size, collider_size),
+                        Collider::rectangle(collider_size, collider_size),
                         Sensor,
                         Groups::hitbox(Groups::ENEMY),
                     ))
@@ -102,23 +102,6 @@ impl DemoSlash {
         commands.entity(parent).push_children(&colliders);
         colliders
     }
-
-    pub fn get_collision(&self, rapier_context: &RapierContext) -> Option<Entity> {
-        let collider_refs = match &self.stage {
-            Stage::Active { colliders } => colliders,
-            _ => return None,
-        };
-
-        for collider in collider_refs.iter() {
-            for (_, other, _) in rapier_context
-                .intersection_pairs_with(*collider)
-                .filter(|(_, _, intersecting)| *intersecting)
-            {
-                return Some(other);
-            }
-        }
-        None
-    }
 }
 
 pub fn demo_slash_player_behavior(
@@ -127,7 +110,7 @@ pub fn demo_slash_player_behavior(
     mut q_state: Query<
         (
             Entity,
-            &mut Velocity,
+            &mut LinearVelocity,
             &mut DemoSlash,
             &Grounded,
             &FacingDirection,
@@ -136,11 +119,9 @@ pub fn demo_slash_player_behavior(
     >,
     time: Res<ScaledTime>,
     mut commands: Commands,
-    rapier_context: Res<RapierContext>,
+    q_colliding_entities: Query<&CollidingEntities>,
 ) {
-    for (entity, mut velocity, mut state, grounded, direction) in q_state.iter_mut() {
-        let vel = &mut velocity.linvel;
-
+    for (entity, mut vel, mut state, grounded, direction) in q_state.iter_mut() {
         let timer_finished = state.stage_timer.tick(time.delta).finished();
 
         match &state.stage {
@@ -176,9 +157,9 @@ pub fn demo_slash_player_behavior(
                 state.set_stage(Stage::Settle);
                 input_blocker.clear();
             }
-            Stage::Active { .. } if !state.has_hit => {
-                if let Some(other) = state.get_collision(&rapier_context) {
-                    println!("Slashed: {other:?}");
+            Stage::Active { colliders } if !state.has_hit => {
+                if let Some(other) = colliders.iter().flat_map(|x| q_colliding_entities.get(*x)).flat_map(|x| x.0.iter().next()).next() {
+                    println!("Slashed: {other:?}", );
                     state.has_hit = true;
                 };
             }

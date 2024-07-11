@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_rapier2d::dynamics::Velocity;
+use avian2d::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
@@ -40,12 +40,11 @@ impl Jumping {
 }
 
 pub fn jumping_behavior_player(
-    mut q_state: Query<(&mut Velocity, Option<&Crouch>, &Grounded, &mut Jumping)>,
+    mut q_state: Query<(&mut LinearVelocity, Option<&Crouch>, &Grounded, &mut Jumping)>,
     input: Res<ActionState<Inputs>>,
     input_blocker: Res<InputBlocker>,
 ) {
-    for (mut velocity, o_crouching, grounded, mut state) in q_state.iter_mut() {
-        let vel = &mut velocity.linvel;
+    for (mut vel, o_crouching, grounded, mut state) in q_state.iter_mut() {
 
         if let Some(crouching) = o_crouching {
             if crouching.check() && state.has_air_jumped {

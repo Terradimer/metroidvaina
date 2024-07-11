@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::color::palettes::css;
 
 use crate::{WINDOW_HEIGHT, WINDOW_WIDTH};
 
@@ -16,7 +17,7 @@ pub fn startup(
         &mut commands,
         &mut meshes,
         &mut materials,
-        Color::GRAY,
+        css::GRAY.into(),
         Vec2 {
             x: 0.,
             y: -WINDOW_HEIGHT / 2. + 25.,
@@ -31,7 +32,7 @@ pub fn startup(
         &mut commands,
         &mut meshes,
         &mut materials,
-        Color::GRAY,
+        css::GRAY.into(),
         Vec2 {
             x: WINDOW_WIDTH / 2. - 25.,
             y: 0.,
@@ -45,7 +46,7 @@ pub fn startup(
         &mut commands,
         &mut meshes,
         &mut materials,
-        Color::GRAY,
+        css::GRAY.into(),
         Vec2 {
             x: -WINDOW_WIDTH / 2. + 25.,
             y: 0.,
@@ -60,7 +61,7 @@ pub fn startup(
         &mut commands,
         &mut meshes,
         &mut materials,
-        Color::GRAY,
+        css::GRAY.into(),
         Vec2 { x: 100., y: 110. },
         Vec2 {
             x: 50.,

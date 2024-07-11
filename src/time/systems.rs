@@ -1,17 +1,13 @@
 use crate::time::resources::*;
 use bevy::prelude::*;
-use bevy_rapier2d::plugin::{RapierConfiguration, TimestepMode};
 use std::time::Duration;
+use avian2d::prelude::*;
 
 pub fn update_scaled_time(
     time: Res<Time>,
     mut time_scale: ResMut<ScaledTime>,
-    mut rapier_config: ResMut<RapierConfiguration>,
+    mut time_physics: ResMut<Time<Physics>>,
 ) {
     time_scale.delta = Duration::from_secs_f32(time.delta_seconds() * time_scale.scale);
-    rapier_config.timestep_mode = TimestepMode::Variable {
-        max_dt: time.delta_seconds() * time_scale.scale,
-        time_scale: time_scale.scale,
-        substeps: 3,
-    };
+    // *time_physics = Time::new_with(Physics::variable((time_scale.delta_seconds() * time_scale.scale).max(0.000001).into()));
 }

@@ -4,7 +4,7 @@ use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
     input::{resources::InputBlocker, Inputs},
-    player::state::Grounded,
+    player::components::Grounded,
 };
 
 use super::crouch::Crouch;

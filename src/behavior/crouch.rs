@@ -1,4 +1,4 @@
-use crate::collision_groups::Groups;
+use crate::{collision_groups::Groups, player::components::Grounded};
 use bevy::prelude::*;
 use bevy_rapier2d::{
     geometry::{Collider, CollisionGroups, Sensor},
@@ -8,10 +8,7 @@ use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
     input::{resources::InputBlocker, Inputs},
-    player::{
-        components::{Body, Player},
-        state::Grounded,
-    },
+    player::components::{Body, Player},
 };
 
 use super::slide::Slide;

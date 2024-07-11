@@ -5,10 +5,7 @@ use leafwing_input_manager::action_state::ActionState;
 use crate::{
     collision_groups::Groups,
     input::{resources::InputBlocker, Inputs},
-    player::{
-        components::{Body, Player},
-        state::Grounded,
-    },
+    player::components::{Body, Grounded, Player},
 };
 
 use super::jump::Jumping;

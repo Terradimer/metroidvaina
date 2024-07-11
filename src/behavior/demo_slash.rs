@@ -7,10 +7,7 @@ use leafwing_input_manager::action_state::ActionState;
 use crate::{
     collision_groups::Groups,
     input::{resources::InputBlocker, Inputs},
-    player::{
-        components::{FacingDirection, Player},
-        state::Grounded,
-    },
+    player::components::{FacingDirection, Grounded, Player},
     time::resources::ScaledTime,
 };
 

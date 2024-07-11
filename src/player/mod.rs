@@ -6,7 +6,6 @@ use self::systems::*;
 
 pub mod components;
 mod resources;
-pub mod state;
 mod systems;
 
 pub struct PlayerPlugin;

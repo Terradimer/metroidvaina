@@ -15,9 +15,7 @@ use crate::{
     time::resources::ScaledTime,
 };
 
-use super::{
-    components::*, state::*, PLAYER_ACCELERATION_FACTOR, PLAYER_MAX_SPEED, PLAYER_SLOWING_FACTOR,
-};
+use super::{components::*, PLAYER_ACCELERATION_FACTOR, PLAYER_MAX_SPEED, PLAYER_SLOWING_FACTOR};
 
 pub fn startup(
     mut commands: Commands,

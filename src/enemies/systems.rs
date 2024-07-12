@@ -1,10 +1,10 @@
+use avian2d::prelude::*;
 use bevy::{
     prelude::*,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
-use avian2d::prelude::*;
 
-use crate::collision_groups::Groups;
+use crate::collision_groups::{CollisionGroups, Group};
 
 use super::components::Enemy;
 
@@ -22,13 +22,13 @@ pub fn startup(
                 ..default()
             },
             Enemy,
-            Groups::collision(),
+            CollisionGroups::collision(),
             Collider::rectangle(50., 100.),
         ))
         .with_children(|parent| {
             parent.spawn((
                 SpatialBundle::default(),
-                Groups::hurtbox(Groups::ENEMY),
+                CollisionGroups::hurtbox(&[Group::Enemy]),
                 Collider::rectangle(50., 100.),
             ));
         });

@@ -1,10 +1,10 @@
+use avian2d::prelude::*;
 use bevy::{
     prelude::*,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
-use avian2d::prelude::*;
 
-use crate::collision_groups::Groups;
+use crate::collision_groups::CollisionGroups;
 
 pub fn spawn_cube(
     commands: &mut Commands,
@@ -21,8 +21,9 @@ pub fn spawn_cube(
             transform: Transform::from_translation(location.extend(0.)),
             ..default()
         },
-        Groups::environment(),
+        CollisionGroups::environment(),
         RigidBody::Static,
+        Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
         Collider::rectangle(size.x, size.y),
     ));
 }

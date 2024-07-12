@@ -1,9 +1,9 @@
-use bevy::prelude::*;
 use avian2d::prelude::*;
+use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
-    collision_groups::Groups,
+    collision_groups::*,
     input::{resources::InputBlocker, Inputs},
     player::components::{Body, Grounded, Player},
 };
@@ -47,7 +47,7 @@ impl Kick {
                     -height / 4.,
                     0.,
                 )),
-                Groups::hitbox(Groups::ENEMY),
+                CollisionGroups::hitbox(&[Group::Enemy]),
                 Collider::rectangle(width, height / 2.),
                 Sensor,
             ))
@@ -109,23 +109,27 @@ pub fn kicking_behavior_player(
                     *vel = avian2d::prelude::LinearVelocity(vel.normalize() * vel.length());
                 }
             }
+            Stage::Active { collider } if grounded.check() => {
+                state.stage = Stage::Dormant;
+
+                commands.entity(collider).despawn();
+                input_blocker.clear()
+            }
             Stage::Active { collider } => {
-                if let Some(other) = q_colliding_entities.get(collider).ok().and_then(|x| x.0.iter().next()) {
+                if let Some(other) = q_colliding_entities
+                    .get(collider)
+                    .ok()
+                    .and_then(|x| x.0.iter().next())
+                {
                     println!("Kicked: {other:?}");
-                    state.stage = Stage::Dormant;
+                    state.set_stage(Stage::Dormant);
                     input_blocker.clear();
 
                     commands.entity(collider).despawn();
                     jumping.set_stage(super::jump::Stage::Active);
                     vel.y = jumping.jump_force;
                     jumping.reset_air_jump();
-                }
-
-                if grounded.check() {
-                    state.stage = Stage::Dormant;
-
-                    commands.entity(collider).despawn();
-                    input_blocker.clear()
+                    println!("Yump");
                 }
             }
         }

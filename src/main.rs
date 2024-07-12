@@ -5,12 +5,15 @@ mod enemies;
 mod input;
 mod macros;
 mod player;
-mod time;
+
 mod world;
 
-use avian2d::debug_render::PhysicsDebugPlugin;
+use std::time::Duration;
+
 use avian2d::prelude::Gravity;
+use avian2d::schedule::{Physics, TimestepMode};
 use avian2d::PhysicsPlugins;
+use avian2d::{debug_render::PhysicsDebugPlugin, dynamics::ccd::CcdPlugin};
 use behavior::BehaviorPlugin;
 use bevy::{
     prelude::*,
@@ -24,7 +27,6 @@ use bevy_asset_loader::prelude::*;
 use enemies::EnemiesPlugin;
 use input::InputHandlerPlugin;
 use player::PlayerPlugin;
-use time::TimeScalarPlugin;
 use world::WorldPlugin;
 
 pub const WINDOW_WIDTH: f32 = 1920. * 0.75;
@@ -32,27 +34,25 @@ pub const WINDOW_HEIGHT: f32 = 1080. * 0.75;
 
 fn main() {
     App::new()
-        .add_plugins((
-            DefaultPlugins
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        title: "Metroidvainia Demo".to_string(),
-                        resolution: WindowResolution::new(WINDOW_WIDTH, WINDOW_HEIGHT),
-                        resizable: false,
-                        present_mode: AutoNoVsync,
-                        ..default()
-                    }),
+        .add_plugins((DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "Metroidvainia Demo".to_string(),
+                    resolution: WindowResolution::new(WINDOW_WIDTH, WINDOW_HEIGHT),
+                    resizable: false,
+                    present_mode: AutoNoVsync,
                     ..default()
-                })
-                .set(RenderPlugin {
-                    render_creation: RenderCreation::Automatic(WgpuSettings {
-                        backends: Some(Backends::VULKAN),
-                        ..default()
-                    }),
+                }),
+                ..default()
+            })
+            .set(RenderPlugin {
+                render_creation: RenderCreation::Automatic(WgpuSettings {
+                    backends: Some(Backends::VULKAN),
                     ..default()
-                })
-                .set(ImagePlugin::default_nearest()),
-        ))
+                }),
+                ..default()
+            })
+            .set(ImagePlugin::default_nearest()),))
         .init_state::<GameState>()
         .add_loading_state(
             LoadingState::new(GameState::Loading).continue_to_state(GameState::Playing),
@@ -62,7 +62,6 @@ fn main() {
             PhysicsDebugPlugin::default(),
             // Project plugins
             InputHandlerPlugin,
-            TimeScalarPlugin,
             WorldPlugin,
             PlayerPlugin,
             EnemiesPlugin,
@@ -70,6 +69,13 @@ fn main() {
         ))
         // .insert_resource(Time::<Physics>::from_timestep(avian2d::schedule::TimestepMode::Variable { max_delta: () }))
         .insert_resource(Gravity(Vec2::NEG_Y * 1000.0))
+        .insert_resource(Time::new_with(Physics::from_timestep(
+            TimestepMode::Fixed {
+                delta: Duration::from_secs_f32(0.001),
+                overstep: Duration::from_secs_f32(0.001),
+                max_delta_overstep: Duration::from_secs_f32(0.01),
+            },
+        )))
         .run();
 }
 

@@ -1,7 +1,8 @@
-use crate::{collision_groups::Groups, player::components::Grounded};
+use crate::collision_groups::CollisionGroups;
+use crate::player::components::Grounded;
+use avian2d::prelude::*;
 use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
-use avian2d::prelude::*;
 
 use crate::{
     input::{resources::InputBlocker, Inputs},
@@ -43,8 +44,9 @@ impl Crouch {
         let collider_ref = commands
             .spawn((
                 SpatialBundle::from_transform(Transform::from_xyz(0., -height / 4., 0.)),
-                Groups::collision(),
+                CollisionGroups::collision(),
                 Collider::rectangle(width, height / 2.),
+                Restitution::new(0.).with_combine_rule(CoefficientCombine::Min),
             ))
             .id();
 
@@ -65,7 +67,7 @@ impl Crouch {
                     ..Vec3::ZERO
                 })),
                 Sensor,
-                Groups::collision(),
+                CollisionGroups::collision(),
                 Collider::rectangle(width / 2., height / 2.),
             ))
             .id();
@@ -89,7 +91,6 @@ pub fn crouching_behavior_player(
     mut q_collider: Query<&mut CollisionLayers>,
     mut commands: Commands,
     collisions: Res<Collisions>,
-
 ) {
     let axis_data = match input.clamped_axis_pair(&Inputs::Directional) {
         Some(data) => data.xy(),
@@ -106,7 +107,7 @@ pub fn crouching_behavior_player(
         } else {
             input_crouching && grounded.check()
         };
-        
+
         match &state.stage {
             Stage::Standing if trying_crouch => {
                 let Ok(mut collision_group) = q_collider.get_mut(body.collider_ref) else {
@@ -114,7 +115,7 @@ pub fn crouching_behavior_player(
                 };
 
                 // Make the crouch collision collider
-                *collision_group = Groups::inactive();
+                *collision_group = CollisionGroups::inactive();
                 let new_collider = Crouch::spawn_collision_collider(
                     &mut commands,
                     entity,
@@ -138,7 +139,11 @@ pub fn crouching_behavior_player(
                 stuck_check_collider,
                 collider_storage,
             } if !trying_crouch => {
-                if collisions.collisions_with_entity(*stuck_check_collider).next().is_none() {
+                if collisions
+                    .collisions_with_entity(*stuck_check_collider)
+                    .next()
+                    .is_none()
+                {
                     commands.entity(body.collider_ref).despawn();
                     commands.entity(*stuck_check_collider).despawn();
 
@@ -147,7 +152,7 @@ pub fn crouching_behavior_player(
                     let Ok(mut collision_group) = q_collider.get_mut(body.collider_ref) else {
                         return;
                     };
-                    *collision_group = Groups::collision();
+                    *collision_group = CollisionGroups::collision();
 
                     state.set_stage(Stage::Standing);
                 }

@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use avian2d::prelude::*;
+use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
@@ -40,42 +40,31 @@ impl Jumping {
 }
 
 pub fn jumping_behavior_player(
-    mut q_state: Query<(&mut LinearVelocity, Option<&Crouch>, &Grounded, &mut Jumping)>,
+    mut q_state: Query<(
+        Option<&Crouch>,
+        &Grounded,
+        &mut LinearVelocity,
+        &mut Jumping,
+    )>,
     input: Res<ActionState<Inputs>>,
     input_blocker: Res<InputBlocker>,
 ) {
-    for (mut vel, o_crouching, grounded, mut state) in q_state.iter_mut() {
-
-        if let Some(crouching) = o_crouching {
-            if crouching.check() && state.has_air_jumped {
-                return;
-            }
+    for (o_crouching, grounded, mut vel, mut state) in q_state.iter_mut() {
+        if o_crouching.is_some_and(|crouching| crouching.check()) && state.has_air_jumped {
+            return;
         }
 
         match state.stage {
-            Stage::Dormant => {
-                if grounded.check() {
-                    state.reset_air_jump();
-                }
-
+            Stage::Dormant
                 if input.just_pressed(&Inputs::Jump)
                     && !input_blocker.check(Inputs::Jump)
-                    && !state.has_air_jumped
-                {
-                    if let Some(input_axis) = input.clamped_axis_pair(&Inputs::Directional) {
-                        if input_axis.y() < 0. && !state.has_air_jumped {
-                            return;
-                        }
-                    };
+                    && (!state.has_air_jumped || grounded.check()) =>
+            {
+                state.has_air_jumped = !grounded.check();
 
-                    if !grounded.check() {
-                        state.has_air_jumped = true;
-                    }
-
-                    state.set_stage(Stage::Active);
-                    vel.y = state.jump_force;
-                    return;
-                }
+                state.set_stage(Stage::Active);
+                vel.y = state.jump_force;
+                return;
             }
             Stage::Active if !input.pressed(&Inputs::Jump) || vel.y < 0. => {
                 state.set_stage(Stage::Dormant);

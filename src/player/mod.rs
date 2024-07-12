@@ -21,7 +21,7 @@ impl Plugin for PlayerPlugin {
             (
                 update_contact,
                 update_facing_direction,
-                (horizontal_movement).after(update_contact),
+                horizontal_movement.after(update_contact),
             )
                 .chain()
                 .run_if(in_state(GameState::Playing)),

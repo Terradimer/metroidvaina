@@ -1,26 +1,25 @@
+use avian2d::prelude::*;
 use bevy::{
     prelude::*,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 use leafwing_input_manager::action_state::ActionState;
-use avian2d::prelude::*;
 
-use crate::behavior::crouch::Crouch;
-use crate::behavior::jump::Jumping;
 use crate::behavior::slide::Slide;
+use crate::behavior::{jump::Jumping, kick::Kick};
+use crate::{behavior::crouch::Crouch, collision_groups::Group};
 use crate::{
     behavior::{
-        // crouch::Crouch, 
-        demo_slash::DemoSlash, 
-        // jump::Jumping, 
-        // kick::Kick, 
-        // shot::Shot, 
+        // crouch::Crouch,
+        demo_slash::DemoSlash,
+        // jump::Jumping,
+        // kick::Kick,
+        // shot::Shot,
         // slide::Slide,
     },
-    collision_groups::Groups,
+    collision_groups::CollisionGroups,
     input::{resources::InputBlocker, Inputs},
     macros::query_guard,
-    time::resources::ScaledTime,
 };
 
 use super::{components::*, PLAYER_ACCELERATION_FACTOR, PLAYER_MAX_SPEED, PLAYER_SLOWING_FACTOR};
@@ -36,7 +35,7 @@ pub fn startup(
     let collider_ref = commands
         .spawn((
             SpatialBundle::default(),
-            Groups::collision(),
+            CollisionGroups::collision(),
             Collider::rectangle(width, height),
         ))
         .id();
@@ -44,7 +43,8 @@ pub fn startup(
     let hurtbox_ref = commands
         .spawn((
             SpatialBundle::default(),
-            Groups::hurtbox(Groups::PLAYER),
+            Sensor,
+            CollisionGroups::hurtbox(&[Group::Enemy]),
             Collider::rectangle(width, height),
         ))
         .id();
@@ -71,9 +71,9 @@ pub fn startup(
         .insert((
             RigidBody::Dynamic,
             GravityScale(1.),
+            SweptCcd::default(),
             Friction::new(0.),
-            Restitution::new(0.).with_combine_rule(
-                CoefficientCombine::Min),
+            Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
             LinearVelocity::default(),
             LockedAxes::ROTATION_LOCKED,
         ))
@@ -82,7 +82,7 @@ pub fn startup(
             DemoSlash::new(),
             Slide::new(700.),
             Jumping::new(600.),
-            // Kick::new(),
+            Kick::new(),
             // Shot::new(),
         ))
         .add_child(collider_ref)
@@ -92,19 +92,15 @@ pub fn startup(
 pub fn horizontal_movement(
     input: Res<ActionState<Inputs>>,
     input_blocker: Res<InputBlocker>,
-    mut q_player: Query<(&mut LinearVelocity, 
-        &Crouch
-    ), With<Player>>,
-    time: Res<ScaledTime>,
+    mut q_player: Query<(&mut LinearVelocity, &Crouch), With<Player>>,
+    time: Res<Time>,
 ) {
     let move_axis = match input.clamped_axis_pair(&Inputs::Directional) {
         Some(data) => data.xy(),
         None => return,
     };
 
-    let (mut vel,
-         crouching
-        ) = query_guard!(q_player.get_single_mut());
+    let (mut vel, crouching) = query_guard!(q_player.get_single_mut());
 
     if !(move_axis.x.abs() > 0.2)
         || vel.x.signum() * move_axis.x.signum() < 0.
@@ -147,12 +143,13 @@ pub fn update_contact(
 
     grounded.stop();
 
-    for collision in collisions.collisions_with_entity(p_body.collider_ref)
-    {
-        for normal in collision.manifolds.iter().map(|manifold| if collision.entity1 == p_body.collider_ref {
-            manifold.normal1
-        } else {
-            manifold.normal2
+    for collision in collisions.collisions_with_entity(p_body.collider_ref) {
+        for normal in collision.manifolds.iter().map(|manifold| {
+            if collision.entity1 == p_body.collider_ref {
+                manifold.normal1
+            } else {
+                manifold.normal2
+            }
         }) {
             if normal.y < 0. {
                 grounded.start() // this already early returns

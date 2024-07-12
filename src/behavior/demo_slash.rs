@@ -1,14 +1,13 @@
 use std::time::Duration;
 
-use bevy::prelude::*;
 use avian2d::prelude::*;
+use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
-    collision_groups::Groups,
+    collision_groups::*,
     input::{resources::InputBlocker, Inputs},
     player::components::{FacingDirection, Grounded, Player},
-    time::resources::ScaledTime,
 };
 
 #[derive(Component)]
@@ -94,7 +93,7 @@ impl DemoSlash {
                         )),
                         Collider::rectangle(collider_size, collider_size),
                         Sensor,
-                        Groups::hitbox(Groups::ENEMY),
+                        CollisionGroups::hitbox(&[Group::Enemy]),
                     ))
                     .id(),
             );
@@ -117,12 +116,12 @@ pub fn demo_slash_player_behavior(
         ),
         With<Player>,
     >,
-    time: Res<ScaledTime>,
+    time: Res<Time>,
     mut commands: Commands,
     q_colliding_entities: Query<&CollidingEntities>,
 ) {
     for (entity, mut vel, mut state, grounded, direction) in q_state.iter_mut() {
-        let timer_finished = state.stage_timer.tick(time.delta).finished();
+        let timer_finished = state.stage_timer.tick(time.delta()).finished();
 
         match &state.stage {
             Stage::Dormant
@@ -158,8 +157,13 @@ pub fn demo_slash_player_behavior(
                 input_blocker.clear();
             }
             Stage::Active { colliders } if !state.has_hit => {
-                if let Some(other) = colliders.iter().flat_map(|x| q_colliding_entities.get(*x)).flat_map(|x| x.0.iter().next()).next() {
-                    println!("Slashed: {other:?}", );
+                if let Some(other) = colliders
+                    .iter()
+                    .flat_map(|x| q_colliding_entities.get(*x))
+                    .flat_map(|x| x.0.iter().next())
+                    .next()
+                {
+                    println!("Slashed: {other:?}",);
                     state.has_hit = true;
                 };
             }

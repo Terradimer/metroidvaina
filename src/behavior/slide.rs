@@ -1,14 +1,13 @@
 use std::time::Duration;
 
-use bevy::prelude::*;
 use avian2d::prelude::*;
+use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
-    collision_groups::Groups,
+    collision_groups::{CollisionGroups, Group},
     input::{resources::InputBlocker, Inputs},
     player::components::{Body, FacingDirection, Player},
-    time::resources::ScaledTime,
 };
 
 use super::crouch::Crouch;
@@ -72,7 +71,7 @@ impl Slide {
                 })),
                 Collider::rectangle(height / 2., height / 4.),
                 Sensor,
-                Groups::hitbox(Groups::ENEMY),
+                CollisionGroups::hitbox(&[Group::Enemy]),
             ))
             .id();
 
@@ -95,12 +94,12 @@ fn sliding_handler_player(
         ),
         With<Player>,
     >,
-    time: Res<ScaledTime>,
+    time: Res<Time>,
     mut commands: Commands,
     q_colliding_entities: Query<&CollidingEntities>,
 ) {
     for (entity, mut velocity, direction, crouching, body, mut state) in q_player.iter_mut() {
-        let timer_finished = state.stage_timer.tick(time.delta).finished();
+        let timer_finished = state.stage_timer.tick(time.delta()).finished();
 
         match state.stage {
             Stage::Dormant => {
@@ -130,7 +129,11 @@ fn sliding_handler_player(
                     return;
                 }
 
-                if let Some(other) = q_colliding_entities.get(collider).ok().and_then(|x| x.0.iter().next()) {
+                if let Some(other) = q_colliding_entities
+                    .get(collider)
+                    .ok()
+                    .and_then(|x| x.0.iter().next())
+                {
                     println!("Slide-kicked into: {other:?}");
                     state.has_hit = true;
                 }

@@ -47,6 +47,7 @@ impl Crouch {
                 CollisionGroups::collision(),
                 Collider::rectangle(width, height / 2.),
                 Restitution::new(0.).with_combine_rule(CoefficientCombine::Min),
+                Name::new("Crouch Collider"),
             ))
             .id();
 

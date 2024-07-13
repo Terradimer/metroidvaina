@@ -12,7 +12,6 @@ pub fn startup(
 ) {
     commands.spawn(Camera2dBundle::default());
 
-    // Ground
     spawn_cube(
         &mut commands,
         &mut meshes,
@@ -26,8 +25,9 @@ pub fn startup(
             x: WINDOW_WIDTH,
             y: 50.,
         },
+        Name::new("WorldGround"),
     );
-    // outer walls
+    
     spawn_cube(
         &mut commands,
         &mut meshes,
@@ -41,6 +41,7 @@ pub fn startup(
             x: 50.,
             y: WINDOW_HEIGHT,
         },
+        Name::new("WorldOuterWallRight"),
     );
     spawn_cube(
         &mut commands,
@@ -55,8 +56,9 @@ pub fn startup(
             x: 50.,
             y: WINDOW_HEIGHT,
         },
+        Name::new("WorldOuterWallLeft"),
     );
-    // middle
+    
     spawn_cube(
         &mut commands,
         &mut meshes,
@@ -67,5 +69,6 @@ pub fn startup(
             x: 50.,
             y: WINDOW_HEIGHT,
         },
+        Name::new("WorldMiddleBlocker"),
     );
 }

@@ -72,6 +72,7 @@ impl Slide {
                 Collider::rectangle(height / 2., height / 4.),
                 Sensor,
                 CollisionGroups::hitbox(&[Group::Enemy]),
+                Name::new("SlideSensor"),
             ))
             .id();
 
@@ -119,7 +120,7 @@ fn sliding_handler_player(
                 }
             }
             Stage::Accelerate { collider } if timer_finished => {
-                commands.entity(collider).despawn();
+                commands.entity(collider).despawn_recursive();
                 state.set_stage(Stage::Settle);
             }
             Stage::Accelerate { collider } => {

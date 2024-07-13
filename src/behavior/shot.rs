@@ -43,6 +43,7 @@ impl Shot {
             Collider::circle(6.),
             Sensor,
             Groups::hitbox(Groups::ENEMY),
+            Name::new("ShotSensor"),
             // Ccd::enabled(),
         ));
     }

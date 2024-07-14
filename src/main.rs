@@ -7,13 +7,14 @@ mod macros;
 mod player;
 
 mod world;
+mod shape_intersections;
 
 use std::time::Duration;
 
 use avian2d::prelude::Gravity;
 use avian2d::schedule::{Physics, TimestepMode};
 use avian2d::PhysicsPlugins;
-use avian2d::{debug_render::PhysicsDebugPlugin, dynamics::ccd::CcdPlugin};
+use avian2d::debug_render::PhysicsDebugPlugin;
 use behavior::BehaviorPlugin;
 use bevy::{
     prelude::*,
@@ -71,11 +72,12 @@ fn main() {
         .insert_resource(Gravity(Vec2::NEG_Y * 1000.0))
         .insert_resource(Time::new_with(Physics::from_timestep(
             TimestepMode::Fixed {
-                delta: Duration::from_secs_f32(0.001),
+                delta: Duration::from_secs_f32(0.0001),
                 overstep: Duration::from_secs_f32(0.001),
                 max_delta_overstep: Duration::from_secs_f32(0.01),
             },
         )))
+        // .add_systems(Startup, entity_count)
         .run();
 }
 
@@ -85,3 +87,10 @@ enum GameState {
     Loading,
     Playing,
 }
+
+
+// fn entity_count(mut config: ResMut<GizmoConfigStore>) {
+//     config.config_mut::<DefaultGizmoConfigGroup>().0.depth_bias = -1.;
+//     // println!("{:?}", q_entities.iter().fold(0, |x, _| x + 1))
+//     // println!("{:?}", q_entities.iter().map(|x| (x.0, x.1.coefficient)).collect::<Vec<_>>())
+// }

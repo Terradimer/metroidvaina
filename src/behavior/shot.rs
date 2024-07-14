@@ -65,7 +65,7 @@ pub fn projectile_behavior(
             // add another query and check if the hit entity has a health component
             // if not, proceed as normal
             // Since we dont have "hp" yet, we dont use either entity collision and just despawn the bullet
-            // commands.entity(collider).despawn();
+            // commands.entity(collider).despawn_recursive();
         }
     }
 }

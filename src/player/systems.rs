@@ -17,7 +17,6 @@ use crate::{
         // shot::Shot,
         // slide::Slide,
     },
-    collision_groups::CollisionGroups,
     input::{resources::InputBlocker, Inputs},
     macros::query_guard,
 };
@@ -35,9 +34,10 @@ pub fn startup(
     let collider_ref = commands
         .spawn((
             SpatialBundle::default(),
-            CollisionGroups::collision(),
+            Group::collider(),
             Collider::rectangle(width, height),
             Name::new("PlayerCollider"),
+            Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
         ))
         .id();
 
@@ -45,7 +45,7 @@ pub fn startup(
         .spawn((
             SpatialBundle::default(),
             Sensor,
-            CollisionGroups::hurtbox(&[Group::Enemy]),
+            Group::hurtbox(),
             Collider::rectangle(width, height),
             Name::new("PlayerHurtbox"),
         ))
@@ -142,6 +142,7 @@ pub fn update_contact(
     mut q_player: Query<(&mut Grounded, &Body), With<Player>>,
     collisions: Res<Collisions>,
 ) {
+    // dbg!(collisions.iter().map(|_| 1).sum::<i32>());
     let (mut grounded, p_body) = query_guard!(q_player.get_single_mut());
 
     grounded.stop();

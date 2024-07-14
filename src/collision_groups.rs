@@ -1,74 +1,61 @@
+
 use avian2d::{
-    collision::{CollisionLayers, LayerMask},
-    prelude::PhysicsLayer,
-};
+    collision::{CollisionLayers, LayerMask}, spatial_query::SpatialQueryFilter}
+;
 
-pub struct CollisionGroups;
-
-#[derive(PhysicsLayer, Clone, Copy)]
+#[allow(dead_code)]
+#[derive(Clone, Copy)]
+#[repr(u32)]
 pub enum Group {
-    Player,
-    Enemy,
-    Environment,
+    None        = 0b0,
+    Hitbox      = 0b1,
+    Hurtbox     = 0b10,
+    Environment = 0b100,
+    Collider    = 0b1000,
+}
+
+impl Into<SpatialQueryFilter> for Group {
+    fn into(self) -> SpatialQueryFilter {
+        SpatialQueryFilter::from_mask(self)
+    }
+}
+
+impl Into<LayerMask> for Group {
+    fn into(self) -> LayerMask {
+        self.to_layer_mask()
+    }
 }
 
 impl Group {
-    fn to_mask(self) -> u32 {
-        match self {
-            Group::Player => CollisionGroups::PLAYER,
-            Group::Enemy => CollisionGroups::ENEMY,
-            Group::Environment => CollisionGroups::ENVIRONMENT,
-        }
-    }
-}
-
-impl CollisionGroups {
-    const NONE: u32 = 0;
-    const INACTIVE: u32 = 1 << 0;
-    const COLLISION: u32 = 1 << 1;
-    const PLAYER: u32 = 1 << 2;
-    const ENEMY: u32 = 1 << 3;
-    const ENVIRONMENT: u32 = 1 << 4;
-    const HIT: u32 = 1 << 5;
-
-    const INACTIVE_INTERACTION: CollisionLayers = CollisionLayers {
-        memberships: LayerMask { 0: Self::INACTIVE },
-        filters: LayerMask { 0: Self::NONE },
-    };
-
-    const COLLISION_INTERACTION: CollisionLayers = CollisionLayers {
-        memberships: LayerMask { 0: Self::COLLISION },
-        filters: LayerMask {
-            0: Self::ENVIRONMENT,
-        },
-    };
-
-    const ENVIRONMENT_INTERACTION: CollisionLayers = CollisionLayers {
-        memberships: LayerMask {
-            0: Self::ENVIRONMENT,
-        },
-        filters: LayerMask { 0: Self::COLLISION },
-    };
-
-    pub fn hitbox(targets: &[Group]) -> CollisionLayers {
-        let target_mask = targets.iter().fold(0, |acc, &group| acc | group.to_mask());
-        CollisionLayers::new(Self::HIT, target_mask)
-    }
-
-    pub fn hurtbox(sources: &[Group]) -> CollisionLayers {
-        let source_mask = sources.iter().fold(0, |acc, &group| acc | group.to_mask());
-        CollisionLayers::new(source_mask, Self::HIT)
+    pub const fn to_layer_mask(self)  -> LayerMask {
+        LayerMask(self as u32)
     }
 
     pub const fn inactive() -> CollisionLayers {
-        Self::INACTIVE_INTERACTION
-    }
-
-    pub const fn collision() -> CollisionLayers {
-        Self::COLLISION_INTERACTION
+        CollisionLayers {
+            memberships: Self::None.to_layer_mask(),
+            filters: Self::None.to_layer_mask(),
+        }
     }
 
     pub const fn environment() -> CollisionLayers {
-        Self::ENVIRONMENT_INTERACTION
+        CollisionLayers {
+            memberships: Self::Environment.to_layer_mask(),
+            filters: Self::Collider.to_layer_mask(),
+        }
+    }
+
+    pub const fn collider() -> CollisionLayers {
+        CollisionLayers {
+            memberships: Self::Collider.to_layer_mask(),
+            filters: Self::Environment.to_layer_mask(),
+        }
+    }
+
+    pub const fn hurtbox() -> CollisionLayers {
+        CollisionLayers {
+            memberships: Self::Hurtbox.to_layer_mask(),
+            filters: Self::None.to_layer_mask(),
+        }
     }
 }

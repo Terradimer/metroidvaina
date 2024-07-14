@@ -4,7 +4,7 @@ use bevy::{
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 
-use crate::collision_groups::{CollisionGroups, Group};
+use crate::collision_groups::Group;
 
 use super::components::Enemy;
 
@@ -22,14 +22,15 @@ pub fn startup(
                 ..default()
             },
             Enemy,
-            CollisionGroups::collision(),
+            Group::collider(),
             Collider::rectangle(50., 100.),
             Name::new("TestDummyCollider"),
         ))
         .with_children(|parent| {
             parent.spawn((
                 SpatialBundle::default(),
-                CollisionGroups::hurtbox(&[Group::Enemy]),
+                Enemy,
+                Group::hurtbox(),
                 Collider::rectangle(50., 100.),
                 Name::new("TestDummyHurtbox"),
             ));

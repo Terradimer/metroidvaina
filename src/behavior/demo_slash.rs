@@ -4,6 +4,8 @@ use avian2d::prelude::*;
 use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
+use crate::enemies::Enemy;
+use crate::shape_intersections::ShapeIntersections;
 use crate::{
     collision_groups::*,
     input::{resources::InputBlocker, Inputs},
@@ -20,7 +22,7 @@ pub struct DemoSlash {
 pub enum Stage {
     Dormant,
     Windup,
-    Active { colliders: Vec<Entity> },
+    Active,
     Settle,
 }
 
@@ -54,54 +56,6 @@ impl DemoSlash {
         }
         self.stage_timer.reset();
     }
-
-    pub fn spawn_colliders(
-        commands: &mut Commands,
-        slash_size: f32,
-        parent: Entity,
-        direction: f32,
-    ) -> Vec<Entity> {
-        let mut colliders = Vec::with_capacity(3);
-
-        for i in 0..3 {
-            let is_side_collider = i % 2 == 0;
-
-            let collider_size = if is_side_collider {
-                slash_size / 2.25
-            } else {
-                slash_size
-            };
-
-            colliders.push(
-                commands
-                    .spawn((
-                        SpatialBundle::from_transform(Transform::from_translation(
-                            if is_side_collider {
-                                Vec3 {
-                                    y: collider_size
-                                        + slash_size
-                                        + i as f32 * (-collider_size - slash_size),
-                                    x: slash_size * direction * 2.,
-                                    z: 0.,
-                                }
-                            } else {
-                                Vec3 {
-                                    x: collider_size * 2.5 * direction,
-                                    ..Vec3::ZERO
-                                }
-                            },
-                        )),
-                        Collider::rectangle(collider_size, collider_size),
-                        Sensor,
-                        CollisionGroups::hitbox(&[Group::Enemy]),
-                        Name::new("DemoSlashSensor"),
-                    ))
-                    .id(),
-            );
-        }
-        commands.entity(parent).push_children(&colliders);
-        colliders
-    }
 }
 
 pub fn demo_slash_player_behavior(
@@ -109,19 +63,19 @@ pub fn demo_slash_player_behavior(
     mut input_blocker: ResMut<InputBlocker>,
     mut q_state: Query<
         (
-            Entity,
             &mut LinearVelocity,
             &mut DemoSlash,
             &Grounded,
             &FacingDirection,
+            &Transform,
         ),
         With<Player>,
     >,
     time: Res<Time>,
-    mut commands: Commands,
-    q_colliding_entities: Query<&CollidingEntities>,
+    mut shape_intersections: ShapeIntersections,
+    q_enemy: Query<&Enemy>,
 ) {
-    for (entity, mut vel, mut state, grounded, direction) in q_state.iter_mut() {
+    for (mut vel, mut state, grounded, direction, transform) in q_state.iter_mut() {
         let timer_finished = state.stage_timer.tick(time.delta()).finished();
 
         match &state.stage {
@@ -137,32 +91,20 @@ pub fn demo_slash_player_behavior(
                 }
             }
             Stage::Windup if timer_finished => {
-                state.set_stage(Stage::Active {
-                    colliders: DemoSlash::spawn_colliders(
-                        &mut commands,
-                        25.,
-                        entity,
-                        direction.get(),
-                    ),
-                });
+                state.set_stage(Stage::Active);
             }
-            Stage::Active { colliders } if timer_finished => {
-                let colliders_to_despawn = colliders.clone();
-
-                // Despawn the colliders
-                for &collider in &colliders_to_despawn {
-                    commands.entity(collider).despawn_recursive();
-                }
-
+            Stage::Active if timer_finished => {
                 state.set_stage(Stage::Settle);
                 input_blocker.clear();
             }
-            Stage::Active { colliders } if !state.has_hit => {
-                if let Some(other) = colliders
-                    .iter()
-                    .flat_map(|x| q_colliding_entities.get(*x))
-                    .flat_map(|x| x.0.iter().next())
-                    .next()
+            Stage::Active if !state.has_hit => {
+                let collider_size: f32 = 25.;
+                let slash_size_side = collider_size / 2.25;
+                if let Some(other) = std::iter::empty()
+                .chain(shape_intersections.shape_intersections(&Collider::rectangle(slash_size_side,slash_size_side), transform.translation.xy() + Vec2::new(collider_size * 2. * direction.get(), collider_size + slash_size_side), 0., Group::Hurtbox.into()).iter())
+                .chain(shape_intersections.shape_intersections(&Collider::rectangle(collider_size, collider_size), transform.translation.xy() + Vec2::new(collider_size * 2.5 * direction.get(), 0.), 0., Group::Hurtbox.into()).iter())
+                .chain(shape_intersections.shape_intersections(&Collider::rectangle(slash_size_side,slash_size_side), transform.translation.xy() + Vec2::new(collider_size* 2. * direction.get(), collider_size + slash_size_side + 2. * (-collider_size - slash_size_side)), 0., Group::Hurtbox.into()).iter())
+                .filter(|x| q_enemy.get(**x).is_ok()).next()
                 {
                     println!("Slashed: {other:?}",);
                     state.has_hit = true;

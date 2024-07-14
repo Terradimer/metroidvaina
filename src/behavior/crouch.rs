@@ -1,5 +1,6 @@
-use crate::collision_groups::CollisionGroups;
+use crate::collision_groups::Group;
 use crate::player::components::Grounded;
+use crate::shape_intersections::ShapeIntersections;
 use avian2d::prelude::*;
 use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
@@ -19,7 +20,6 @@ pub struct Crouch {
 pub enum Stage {
     Standing,
     Crouching {
-        stuck_check_collider: Entity,
         collider_storage: Entity,
     },
 }
@@ -44,38 +44,15 @@ impl Crouch {
         let collider_ref = commands
             .spawn((
                 SpatialBundle::from_transform(Transform::from_xyz(0., -height / 4., 0.)),
-                CollisionGroups::collision(),
+                Group::collider(),
                 Collider::rectangle(width, height / 2.),
-                Restitution::new(0.).with_combine_rule(CoefficientCombine::Min),
+                Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
                 Name::new("CrouchCollider"),
             ))
             .id();
 
         commands.entity(parent).add_child(collider_ref);
         collider_ref
-    }
-
-    pub fn spawn_stuck_check(
-        commands: &mut Commands,
-        parent: Entity,
-        height: f32,
-        width: f32,
-    ) -> Entity {
-        let collider = commands
-            .spawn((
-                SpatialBundle::from_transform(Transform::from_translation(Vec3 {
-                    y: height / 4.,
-                    ..Vec3::ZERO
-                })),
-                Sensor,
-                CollisionGroups::collision(),
-                Collider::rectangle(width / 2., height / 2.),
-                Name::new("CrouchSensor"),
-            ))
-            .id();
-
-        commands.entity(parent).add_child(collider);
-        collider
     }
 
     pub fn check(&self) -> bool {
@@ -89,10 +66,22 @@ impl Crouch {
 pub fn crouching_behavior_player(
     input: Res<ActionState<Inputs>>,
     input_blocker: Res<InputBlocker>,
-    mut q_player: Query<(Entity, &Grounded, &mut Body, &mut Crouch, Option<&Slide>), With<Player>>,
-    mut q_collider: Query<&mut CollisionLayers>,
+    mut q_player: Query<
+        (
+            Entity,
+            &Grounded,
+            &mut Body,
+            &mut Crouch,
+            Option<&Slide>,
+            &Transform,
+        ),
+        With<Player>,
+    >,
     mut commands: Commands,
-    collisions: Res<Collisions>,
+    mut collision_layers_set: ParamSet<(
+        Query<&mut CollisionLayers>,
+        ShapeIntersections,
+    )>
 ) {
     let axis_data = match input.clamped_axis_pair(&Inputs::Directional) {
         Some(data) => data.xy(),
@@ -102,7 +91,7 @@ pub fn crouching_behavior_player(
     let input_crouching =
         !input_blocker.check(Inputs::Directional) && axis_data.x.abs() < 0.2 && axis_data.y < 0.;
 
-    for (entity, grounded, mut body, mut state, o_slide) in q_player.iter_mut() {
+    for (entity, grounded, mut body, mut state, o_slide, transform) in q_player.iter_mut() {
         let trying_crouch = if let Some(slide) = o_slide {
             (input_crouching && grounded.check())
                 || !matches!(slide.stage(), super::slide::Stage::Dormant)
@@ -112,12 +101,14 @@ pub fn crouching_behavior_player(
 
         match &state.stage {
             Stage::Standing if trying_crouch => {
-                let Ok(mut collision_group) = q_collider.get_mut(body.collider_ref) else {
+                let mut q_collision_layer = collision_layers_set.p0();
+                let Ok(mut old_body_collider_collision_group) =
+                    q_collision_layer.get_mut(body.collider_ref)
+                else {
                     return;
                 };
 
-                // Make the crouch collision collider
-                *collision_group = CollisionGroups::inactive();
+                *old_body_collider_collision_group = Group::inactive();
                 let new_collider = Crouch::spawn_collision_collider(
                     &mut commands,
                     entity,
@@ -127,34 +118,34 @@ pub fn crouching_behavior_player(
 
                 state.set_stage(Stage::Crouching {
                     collider_storage: body.collider_ref,
-                    stuck_check_collider: Crouch::spawn_stuck_check(
-                        &mut commands,
-                        entity,
-                        body.height,
-                        body.width,
-                    ),
                 });
-
+                
                 body.collider_ref = new_collider;
             }
             Stage::Crouching {
-                stuck_check_collider,
                 collider_storage,
             } if !trying_crouch => {
-                if collisions
-                    .collisions_with_entity(*stuck_check_collider)
-                    .next()
-                    .is_none()
+                let mut shape_intersections = collision_layers_set.p1();
+                if shape_intersections
+                    .shape_intersections(
+                        &Collider::rectangle(body.width / 2., body.height / 2.),
+                        transform.translation.xy() + Vec2::new(0., body.height / 4.),
+                        0.,
+                        Group::Environment.into(),
+                    )
+                    .len()
+                    == 0
                 {
+                    drop(shape_intersections); // Drop shape_intersections so we can get a &mut CollisionLayers without overlapping SpacialQuery's &CollisionLayers.
                     commands.entity(body.collider_ref).despawn_recursive();
-                    commands.entity(*stuck_check_collider).despawn_recursive();
 
                     body.collider_ref = *collider_storage;
 
-                    let Ok(mut collision_group) = q_collider.get_mut(body.collider_ref) else {
+                    let mut q_collision_layers = collision_layers_set.p0();
+                    let Ok(mut collision_group) = q_collision_layers.get_mut(body.collider_ref) else {
                         return;
                     };
-                    *collision_group = CollisionGroups::collision();
+                    *collision_group = Group::collider();
 
                     state.set_stage(Stage::Standing);
                 }

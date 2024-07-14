@@ -4,8 +4,10 @@ use avian2d::prelude::*;
 use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
+use crate::collision_groups::Group;
+use crate::enemies::Enemy;
+use crate::shape_intersections::ShapeIntersections;
 use crate::{
-    collision_groups::{CollisionGroups, Group},
     input::{resources::InputBlocker, Inputs},
     player::components::{Body, FacingDirection, Player},
 };
@@ -22,7 +24,7 @@ pub struct Slide {
 
 pub enum Stage {
     Dormant,
-    Accelerate { collider: Entity },
+    Accelerate,
     Settle,
 }
 
@@ -55,30 +57,6 @@ impl Slide {
         }
         self.stage = stage;
     }
-
-    pub fn spawn_collider(
-        commands: &mut Commands,
-        parent: Entity,
-        direction: f32,
-        height: f32,
-    ) -> Entity {
-        let collider = commands
-            .spawn((
-                SpatialBundle::from_transform(Transform::from_translation(Vec3 {
-                    x: height / 4. * direction,
-                    y: -height / 3.,
-                    z: 0.,
-                })),
-                Collider::rectangle(height / 2., height / 4.),
-                Sensor,
-                CollisionGroups::hitbox(&[Group::Enemy]),
-                Name::new("SlideSensor"),
-            ))
-            .id();
-
-        commands.entity(parent).add_child(collider);
-        collider
-    }
 }
 
 fn sliding_handler_player(
@@ -86,20 +64,20 @@ fn sliding_handler_player(
     mut input_blocker: ResMut<InputBlocker>,
     mut q_player: Query<
         (
-            Entity,
             &mut LinearVelocity,
             &FacingDirection,
             &Crouch,
             &Body,
             &mut Slide,
+            &Transform,
         ),
         With<Player>,
     >,
     time: Res<Time>,
-    mut commands: Commands,
-    q_colliding_entities: Query<&CollidingEntities>,
+    mut shape_intersections: ShapeIntersections,
+    q_enemy: Query<&Enemy>,
 ) {
-    for (entity, mut velocity, direction, crouching, body, mut state) in q_player.iter_mut() {
+    for (mut velocity, direction, crouching, body, mut state, transform) in q_player.iter_mut() {
         let timer_finished = state.stage_timer.tick(time.delta()).finished();
 
         match state.stage {
@@ -109,31 +87,20 @@ fn sliding_handler_player(
                     && !input_blocker.check(Inputs::Jump)
                 {
                     input_blocker.block_many(Inputs::all_actions());
-                    state.set_stage(Stage::Accelerate {
-                        collider: Slide::spawn_collider(
-                            &mut commands,
-                            entity,
-                            direction.get(),
-                            body.height,
-                        ),
-                    });
+                    state.set_stage(Stage::Accelerate);
                 }
             }
-            Stage::Accelerate { collider } if timer_finished => {
-                commands.entity(collider).despawn_recursive();
+            Stage::Accelerate  if timer_finished => {
                 state.set_stage(Stage::Settle);
             }
-            Stage::Accelerate { collider } => {
+            Stage::Accelerate => {
                 velocity.x = state.speed * direction.get();
 
                 if state.has_hit {
                     return;
                 }
 
-                if let Some(other) = q_colliding_entities
-                    .get(collider)
-                    .ok()
-                    .and_then(|x| x.0.iter().next())
+                if let Some(other) = shape_intersections.shape_intersections(&Collider::rectangle(body.height / 2., body.height / 4.), transform.translation.xy() + Vec2::new(body.height / 4. * direction.get(), -body.height / 3.), 0., Group::Hurtbox.into()).iter().filter(|x| q_enemy.get(**x).is_ok()).next()
                 {
                     println!("Slide-kicked into: {other:?}");
                     state.has_hit = true;

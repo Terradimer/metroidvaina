@@ -2,6 +2,8 @@ use avian2d::prelude::*;
 use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
+use crate::enemies::Enemy;
+use crate::shape_intersections::ShapeIntersections;
 use crate::{
     collision_groups::*,
     input::{resources::InputBlocker, Inputs},
@@ -18,7 +20,7 @@ pub struct Kick {
 
 pub enum Stage {
     Dormant,
-    Active { collider: Entity },
+    Active,
 }
 
 impl Kick {
@@ -32,30 +34,6 @@ impl Kick {
     pub fn set_stage(&mut self, stage: Stage) {
         self.stage = stage;
     }
-
-    pub fn spawn_collider(
-        commands: &mut Commands,
-        parent: Entity,
-        height: f32,
-        width: f32,
-        direction: f32,
-    ) -> Entity {
-        let collider = commands
-            .spawn((
-                SpatialBundle::from_transform(Transform::from_xyz(
-                    width / 4. * direction,
-                    -height / 4.,
-                    0.,
-                )),
-                CollisionGroups::hitbox(&[Group::Enemy]),
-                Collider::rectangle(width, height / 2.),
-                Sensor,
-                Name::new("KickSensor"),
-            ))
-            .id();
-        commands.entity(parent).add_child(collider);
-        collider
-    }
 }
 
 pub fn kicking_behavior_player(
@@ -63,24 +41,24 @@ pub fn kicking_behavior_player(
     mut input_blocker: ResMut<InputBlocker>,
     mut q_state: Query<
         (
-            Entity,
             &mut LinearVelocity,
             &mut Jumping,
             &mut Kick,
             &Body,
             &Grounded,
+            &Transform,
         ),
         With<Player>,
     >,
-    mut commands: Commands,
-    q_colliding_entities: Query<&CollidingEntities>,
+    mut shape_intersections: ShapeIntersections,
+    q_enemy: Query<&Enemy>,
 ) {
     let move_axis = match input.clamped_axis_pair(&Inputs::Directional) {
         Some(data) => data.xy(),
         None => return,
     };
 
-    for (entity, mut vel, mut jumping, mut state, body, grounded) in q_state.iter_mut() {
+    for (mut vel, mut jumping, mut state, body, grounded, transform) in q_state.iter_mut() {
         match state.stage {
             Stage::Dormant => {
                 if input.just_pressed(&Inputs::Jump)
@@ -89,15 +67,7 @@ pub fn kicking_behavior_player(
                     && move_axis.y < 0.
                 {
                     input_blocker.block_many(Inputs::all_actions());
-                    state.set_stage(Stage::Active {
-                        collider: Kick::spawn_collider(
-                            &mut commands,
-                            entity,
-                            body.height,
-                            body.width,
-                            move_axis.x,
-                        ),
-                    });
+                    state.set_stage(Stage::Active);
 
                     if vel.x.signum() * move_axis.x.signum() < -0.2
                         || vel.x.abs() < state.kick_speed
@@ -110,23 +80,17 @@ pub fn kicking_behavior_player(
                     *vel = avian2d::prelude::LinearVelocity(vel.normalize() * vel.length());
                 }
             }
-            Stage::Active { collider } if grounded.check() => {
+            Stage::Active if grounded.check() => {
                 state.stage = Stage::Dormant;
-
-                commands.entity(collider).despawn();
                 input_blocker.clear()
             }
-            Stage::Active { collider } => {
-                if let Some(other) = q_colliding_entities
-                    .get(collider)
-                    .ok()
-                    .and_then(|x| x.0.iter().next())
+            Stage::Active => {
+                if let Some(other) = shape_intersections.shape_intersections(&Collider::rectangle(body.width, body.height / 2.), transform.translation.xy() + Vec2::new(body.width / 4. * move_axis.x, -body.height / 4.), 0., Group::Hurtbox.into()).iter().filter(|x| q_enemy.get(**x).is_ok()).next()
                 {
                     println!("Kicked: {other:?}");
                     state.set_stage(Stage::Dormant);
                     input_blocker.clear();
 
-                    commands.entity(collider).despawn_recursive();
                     jumping.set_stage(super::jump::Stage::Active);
                     vel.y = jumping.jump_force;
                     jumping.reset_air_jump();

@@ -32,38 +32,12 @@ impl Behavior {
         // any other data relevant to the attributes of your colliders
     ) -> Entity {
     }
-
-    // it is highly recommended to simplify collision checks my passing it off to a generic function
-    pub fn get_collision(&self, rapier_context: &RapierContext) -> Option<Entity> {
-        // If you have a collider dependent on a specific stage, use this structure
-        let collider_refs = match &self.stage {
-            Stage::YourStageHere { collider } => colliders,
-            _ => return None,
-        };
-
-        // Regardless of how you extract your collider data, you should extract
-        // intersections like this:
-        for collider in collider_refs.iter() {
-            // remember that entity1 and entity2 will be random from intersections
-            // meaning if you want a specific entity (like the collider hit)
-            // you need to follow the pattern below
-            for (entity1, entity2, _) in rapier_context
-                .intersection_pairs_with(*collider)
-                .filter(|(_, _, intersecting)| *intersecting)
-            {
-                if entity1 != *collider {
-                    return Some(entity1);
-                } else {
-                    return Some(entity2);
-                }
-            }
-        }
-        None
-    }
 }
 
 // Here is where you define the logic for behaviors
-pub fn behaviorname_player_behavior() {
+pub fn behaviorname_player_behavior(
+    shape_intersections: ShapeIntersections // This will be what you use for hitboxes
+) {
     // you normally want to use a for loop for behavior system logic
     for (components ...) in _query_.iter_mut() {
         // update your timer externally from the stage logic

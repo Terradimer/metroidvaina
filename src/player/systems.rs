@@ -37,6 +37,7 @@ pub fn startup(
             SpatialBundle::default(),
             CollisionGroups::collision(),
             Collider::rectangle(width, height),
+            Name::new("PlayerCollider"),
         ))
         .id();
 
@@ -46,6 +47,7 @@ pub fn startup(
             Sensor,
             CollisionGroups::hurtbox(&[Group::Enemy]),
             Collider::rectangle(width, height),
+            Name::new("PlayerHurtbox"),
         ))
         .id();
 
@@ -76,6 +78,7 @@ pub fn startup(
             Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
             LinearVelocity::default(),
             LockedAxes::ROTATION_LOCKED,
+            Name::new("Player"),
         ))
         .insert((
             Crouch::new(),

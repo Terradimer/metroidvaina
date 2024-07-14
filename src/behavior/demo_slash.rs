@@ -94,6 +94,7 @@ impl DemoSlash {
                         Collider::rectangle(collider_size, collider_size),
                         Sensor,
                         CollisionGroups::hitbox(&[Group::Enemy]),
+                        Name::new("DemoSlashSensor"),
                     ))
                     .id(),
             );
@@ -150,7 +151,7 @@ pub fn demo_slash_player_behavior(
 
                 // Despawn the colliders
                 for &collider in &colliders_to_despawn {
-                    commands.entity(collider).despawn();
+                    commands.entity(collider).despawn_recursive();
                 }
 
                 state.set_stage(Stage::Settle);

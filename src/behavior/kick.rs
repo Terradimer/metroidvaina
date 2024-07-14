@@ -50,6 +50,7 @@ impl Kick {
                 CollisionGroups::hitbox(&[Group::Enemy]),
                 Collider::rectangle(width, height / 2.),
                 Sensor,
+                Name::new("KickSensor"),
             ))
             .id();
         commands.entity(parent).add_child(collider);
@@ -125,7 +126,7 @@ pub fn kicking_behavior_player(
                     state.set_stage(Stage::Dormant);
                     input_blocker.clear();
 
-                    commands.entity(collider).despawn();
+                    commands.entity(collider).despawn_recursive();
                     jumping.set_stage(super::jump::Stage::Active);
                     vel.y = jumping.jump_force;
                     jumping.reset_air_jump();

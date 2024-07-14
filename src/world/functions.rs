@@ -13,6 +13,7 @@ pub fn spawn_cube(
     color: Color,
     location: Vec2,
     size: Vec2,
+    name: Name,
 ) {
     commands.spawn((
         MaterialMesh2dBundle {
@@ -25,5 +26,6 @@ pub fn spawn_cube(
         RigidBody::Static,
         Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
         Collider::rectangle(size.x, size.y),
+        name,
     ));
 }

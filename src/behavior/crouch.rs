@@ -47,6 +47,7 @@ impl Crouch {
                 CollisionGroups::collision(),
                 Collider::rectangle(width, height / 2.),
                 Restitution::new(0.).with_combine_rule(CoefficientCombine::Min),
+                Name::new("CrouchCollider"),
             ))
             .id();
 
@@ -69,6 +70,7 @@ impl Crouch {
                 Sensor,
                 CollisionGroups::collision(),
                 Collider::rectangle(width / 2., height / 2.),
+                Name::new("CrouchSensor"),
             ))
             .id();
 
@@ -144,8 +146,8 @@ pub fn crouching_behavior_player(
                     .next()
                     .is_none()
                 {
-                    commands.entity(body.collider_ref).despawn();
-                    commands.entity(*stuck_check_collider).despawn();
+                    commands.entity(body.collider_ref).despawn_recursive();
+                    commands.entity(*stuck_check_collider).despawn_recursive();
 
                     body.collider_ref = *collider_storage;
 

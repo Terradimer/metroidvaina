@@ -24,12 +24,14 @@ pub fn startup(
             Enemy,
             CollisionGroups::collision(),
             Collider::rectangle(50., 100.),
+            Name::new("TestDummyCollider"),
         ))
         .with_children(|parent| {
             parent.spawn((
                 SpatialBundle::default(),
                 CollisionGroups::hurtbox(&[Group::Enemy]),
                 Collider::rectangle(50., 100.),
+                Name::new("TestDummyHurtbox"),
             ));
         });
 }

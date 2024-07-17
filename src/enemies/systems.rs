@@ -22,7 +22,7 @@ pub fn startup(
                 ..default()
             },
             Enemy,
-            CollisionGroup::collider(),
+            CollisionGroup::COLLIDER,
             Collider::rectangle(50., 100.),
             Name::new("TestDummyCollider"),
         ))

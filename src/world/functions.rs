@@ -22,7 +22,7 @@ pub fn spawn_cube(
             transform: Transform::from_translation(location.extend(0.)),
             ..default()
         },
-        CollisionGroup::environment(),
+        CollisionGroup::ENVIRONMENT,
         RigidBody::Static,
         Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
         Collider::rectangle(size.x, size.y),

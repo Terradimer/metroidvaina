@@ -42,7 +42,7 @@ impl Crouch {
         let collider_ref = commands
             .spawn((
                 SpatialBundle::from_transform(Transform::from_xyz(0., -height / 4., 0.)),
-                CollisionGroup::collider(),
+                CollisionGroup::COLLIDER,
                 Collider::rectangle(width, height / 2.),
                 Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
                 Name::new("CrouchCollider"),
@@ -90,7 +90,7 @@ pub fn crouching_behavior_player(
                     return;
                 };
 
-                *body_collision_group = CollisionGroup::inactive();
+                *body_collision_group = CollisionGroup::INACTIVE;
 
                 state.set_stage(Stage::Crouching {
                     collider_storage: body.collider_ref,
@@ -129,7 +129,7 @@ pub fn crouching_behavior_player(
                 let Ok(mut collision_group) = q_collision_layers.get_mut(body.collider_ref) else {
                     return;
                 };
-                *collision_group = CollisionGroup::collider();
+                *collision_group = CollisionGroup::COLLIDER;
 
                 state.set_stage(Stage::Standing);
             }

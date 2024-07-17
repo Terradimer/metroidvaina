@@ -34,7 +34,7 @@ pub fn startup(
     let collider_ref = commands
         .spawn((
             SpatialBundle::default(),
-            CollisionGroup::collider(),
+            CollisionGroup::COLLIDER,
             Collider::rectangle(width, height),
             Name::new("PlayerCollider"),
             Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),

@@ -13,26 +13,20 @@ const COLLIDER: LayerMask = LayerMask(1 << 4);
 pub struct CollisionGroup;
 
 impl CollisionGroup {
-    pub const fn inactive() -> CollisionLayers {
-        CollisionLayers {
-            memberships: INACTIVE,
-            filters: NONE,
-        }
-    }
+    pub const INACTIVE: CollisionLayers = CollisionLayers {
+        memberships: INACTIVE,
+        filters: NONE,
+    };
 
-    pub const fn environment() -> CollisionLayers {
-        CollisionLayers {
-            memberships: ENVIRONMENT,
-            filters: COLLIDER,
-        }
-    }
+    pub const ENVIRONMENT: CollisionLayers = CollisionLayers {
+        memberships: ENVIRONMENT,
+        filters: COLLIDER,
+    };
 
-    pub const fn collider() -> CollisionLayers {
-        CollisionLayers {
-            memberships: COLLIDER,
-            filters: ENVIRONMENT,
-        }
-    }
+    pub const COLLIDER: CollisionLayers = CollisionLayers {
+        memberships: COLLIDER,
+        filters: ENVIRONMENT,
+    };
 
     pub fn hurtbox(groups: LayerMask) -> CollisionLayers {
         CollisionLayers {

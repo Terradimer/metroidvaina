@@ -5,9 +5,9 @@ use bevy::{
 };
 use leafwing_input_manager::action_state::ActionState;
 
-use crate::behavior::slide::Slide;
-use crate::behavior::{jump::Jumping, kick::Kick};
-use crate::{behavior::crouch::Crouch, collision_groups::Group};
+use crate::behavior::{jump::Jump, kick::Kick};
+use crate::{behavior::crouch::Crouch, collision_groups::CollisionGroup};
+use crate::{behavior::slide::Slide, collision_groups::PLAYER};
 use crate::{
     behavior::{
         // crouch::Crouch,
@@ -34,7 +34,7 @@ pub fn startup(
     let collider_ref = commands
         .spawn((
             SpatialBundle::default(),
-            Group::collider(),
+            CollisionGroup::collider(),
             Collider::rectangle(width, height),
             Name::new("PlayerCollider"),
             Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
@@ -45,7 +45,7 @@ pub fn startup(
         .spawn((
             SpatialBundle::default(),
             Sensor,
-            Group::hurtbox(),
+            CollisionGroup::hurtbox(PLAYER),
             Collider::rectangle(width, height),
             Name::new("PlayerHurtbox"),
         ))
@@ -84,8 +84,8 @@ pub fn startup(
             Crouch::new(),
             DemoSlash::new(),
             Slide::new(700.),
-            Jumping::new(600.),
-            Kick::new(),
+            Jump::new(600.),
+            Kick::new(2200.),
             // Shot::new(),
         ))
         .add_child(collider_ref)

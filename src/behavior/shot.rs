@@ -1,12 +1,10 @@
-use bevy::prelude::*;
 use avian2d::prelude::*;
+use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
-    collision_groups::Groups,
     input::{resources::InputBlocker, Inputs},
     player::components::{FacingDirection, Player},
-    time::resources::ScaledTime,
 };
 
 #[derive(Component)]
@@ -40,11 +38,7 @@ impl Shot {
         commands.spawn((
             SpatialBundle::from_transform(Transform::from_translation(origin)),
             Projectile,
-            Collider::circle(6.),
-            Sensor,
-            Groups::hitbox(Groups::ENEMY),
-            Name::new("ShotSensor"),
-            // Ccd::enabled(),
+            Name::new("Bullet"),
         ));
     }
 }
@@ -57,7 +51,7 @@ pub fn projectile_behavior(
 ) {
     for (collider, mut tranform) in q_bullet.iter() {
         // tranform.translation.x += 300. * time.delta_seconds();
-        
+
         for (entity1, entity2, intersects) in rapier_context.intersection_pairs_with(collider)
         // .filter(|(_, _, intersecting)| *intersecting)
         {

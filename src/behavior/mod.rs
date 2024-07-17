@@ -1,11 +1,11 @@
 use bevy::app::Plugin;
 
 use self::{
-    crouch::CrouchBehavior, 
-    demo_slash::SlashingBehavior, 
+    crouch::CrouchBehavior,
+    demo_slash::SlashingBehavior,
     jump::JumpBehavior,
-    kick::KickingBehavior, 
-    // shot::ShotBehavior, 
+    kick::KickingBehavior,
+    // shot::ShotBehavior,
     slide::SlidingBehavior,
 };
 

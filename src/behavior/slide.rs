@@ -4,8 +4,7 @@ use avian2d::prelude::*;
 use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
-use crate::collision_groups::Group;
-use crate::enemies::Enemy;
+use crate::collision_groups::{CollisionGroup, ENEMY};
 use crate::shape_intersections::ShapeIntersections;
 use crate::{
     input::{resources::InputBlocker, Inputs},
@@ -38,8 +37,8 @@ impl Slide {
         }
     }
 
-    pub fn stage(&self) -> &Stage {
-        &self.stage
+    pub fn check(&self) -> bool {
+        !matches!(&self.stage, Stage::Dormant)
     }
 
     pub fn set_stage(&mut self, stage: Stage) {
@@ -75,32 +74,37 @@ fn sliding_handler_player(
     >,
     time: Res<Time>,
     mut shape_intersections: ShapeIntersections,
-    q_enemy: Query<&Enemy>,
 ) {
     for (mut velocity, direction, crouching, body, mut state, transform) in q_player.iter_mut() {
         let timer_finished = state.stage_timer.tick(time.delta()).finished();
 
         match state.stage {
-            Stage::Dormant => {
+            Stage::Dormant
                 if crouching.check()
                     && input.just_pressed(&Inputs::Jump)
-                    && !input_blocker.check(Inputs::Jump)
-                {
-                    input_blocker.block_many(Inputs::all_actions());
-                    state.set_stage(Stage::Accelerate);
-                }
+                    && !input_blocker.check(Inputs::Jump) =>
+            {
+                input_blocker.block_many(Inputs::all_actions());
+                state.set_stage(Stage::Accelerate);
             }
-            Stage::Accelerate  if timer_finished => {
+            Stage::Accelerate if timer_finished => {
                 state.set_stage(Stage::Settle);
+            }
+            Stage::Accelerate if state.has_hit => {
+                velocity.x = state.speed * direction.get();
             }
             Stage::Accelerate => {
                 velocity.x = state.speed * direction.get();
 
-                if state.has_hit {
-                    return;
-                }
-
-                if let Some(other) = shape_intersections.shape_intersections(&Collider::rectangle(body.height / 2., body.height / 4.), transform.translation.xy() + Vec2::new(body.height / 4. * direction.get(), -body.height / 3.), 0., Group::Hurtbox.into()).iter().filter(|x| q_enemy.get(**x).is_ok()).next()
+                if let Some(other) = shape_intersections
+                    .shape_intersections(
+                        &Collider::rectangle(body.height / 2., body.height / 4.),
+                        transform.translation.xy()
+                            + Vec2::new(body.height / 4. * direction.get(), -body.height / 3.),
+                        0.,
+                        CollisionGroup::filter(ENEMY),
+                    )
+                    .first()
                 {
                     println!("Slide-kicked into: {other:?}");
                     state.has_hit = true;

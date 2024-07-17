@@ -4,7 +4,7 @@ use avian2d::prelude::*;
 use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
-use crate::enemies::Enemy;
+use crate::collision_groups::ENEMY;
 use crate::shape_intersections::ShapeIntersections;
 use crate::{
     collision_groups::*,
@@ -73,7 +73,6 @@ pub fn demo_slash_player_behavior(
     >,
     time: Res<Time>,
     mut shape_intersections: ShapeIntersections,
-    q_enemy: Query<&Enemy>,
 ) {
     for (mut vel, mut state, grounded, direction, transform) in q_state.iter_mut() {
         let timer_finished = state.stage_timer.tick(time.delta()).finished();
@@ -84,9 +83,15 @@ pub fn demo_slash_player_behavior(
                     && !input_blocker.check(Inputs::Primary) =>
             {
                 state.set_stage(Stage::Windup);
-                input_blocker.block_many(Inputs::all_actions());
+                input_blocker.block_many(
+                    Inputs::all_actions()
+                        .into_iter()
+                        .filter(|input| !matches!(*input, Inputs::Directional))
+                        .collect(),
+                );
 
                 if grounded.check() {
+                    input_blocker.block_many(Inputs::all_actions());
                     vel.x = 0.;
                 }
             }
@@ -100,11 +105,37 @@ pub fn demo_slash_player_behavior(
             Stage::Active if !state.has_hit => {
                 let collider_size: f32 = 25.;
                 let slash_size_side = collider_size / 2.25;
-                if let Some(other) = std::iter::empty()
-                .chain(shape_intersections.shape_intersections(&Collider::rectangle(slash_size_side,slash_size_side), transform.translation.xy() + Vec2::new(collider_size * 2. * direction.get(), collider_size + slash_size_side), 0., Group::Hurtbox.into()).iter())
-                .chain(shape_intersections.shape_intersections(&Collider::rectangle(collider_size, collider_size), transform.translation.xy() + Vec2::new(collider_size * 2.5 * direction.get(), 0.), 0., Group::Hurtbox.into()).iter())
-                .chain(shape_intersections.shape_intersections(&Collider::rectangle(slash_size_side,slash_size_side), transform.translation.xy() + Vec2::new(collider_size* 2. * direction.get(), collider_size + slash_size_side + 2. * (-collider_size - slash_size_side)), 0., Group::Hurtbox.into()).iter())
-                .filter(|x| q_enemy.get(**x).is_ok()).next()
+                for i in 0..2 {
+                    if let Some(other) = shape_intersections
+                        .shape_intersections(
+                            &Collider::rectangle(slash_size_side, slash_size_side),
+                            transform.translation.xy()
+                                + Vec2::new(
+                                    collider_size * 2. * direction.get(),
+                                    collider_size
+                                        + slash_size_side
+                                        + 2. * (-collider_size - slash_size_side) * i as f32,
+                                ),
+                            0.,
+                            CollisionGroup::filter(ENEMY),
+                        )
+                        .first()
+                    {
+                        println!("Slashed: {other:?}",);
+                        state.has_hit = true;
+                        return;
+                    }
+                }
+
+                if let Some(other) = shape_intersections
+                    .shape_intersections(
+                        &Collider::rectangle(collider_size, collider_size),
+                        transform.translation.xy()
+                            + Vec2::new(collider_size * 2.5 * direction.get(), 0.),
+                        0.,
+                        CollisionGroup::filter(ENEMY),
+                    )
+                    .first()
                 {
                     println!("Slashed: {other:?}",);
                     state.has_hit = true;

@@ -1,6 +1,6 @@
-use crate::collision_groups::Group;
-use crate::player::components::Grounded;
+use crate::collision_groups::ENVIRONMENT;
 use crate::shape_intersections::ShapeIntersections;
+use crate::{collision_groups::CollisionGroup, player::components::Grounded};
 use avian2d::prelude::*;
 use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
@@ -19,9 +19,7 @@ pub struct Crouch {
 
 pub enum Stage {
     Standing,
-    Crouching {
-        collider_storage: Entity,
-    },
+    Crouching { collider_storage: Entity },
 }
 
 impl Crouch {
@@ -44,7 +42,7 @@ impl Crouch {
         let collider_ref = commands
             .spawn((
                 SpatialBundle::from_transform(Transform::from_xyz(0., -height / 4., 0.)),
-                Group::collider(),
+                CollisionGroup::collider(),
                 Collider::rectangle(width, height / 2.),
                 Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
                 Name::new("CrouchCollider"),
@@ -64,24 +62,12 @@ impl Crouch {
 }
 
 pub fn crouching_behavior_player(
-    input: Res<ActionState<Inputs>>,
+    mut q_player: Query<(Entity, Option<&Slide>, &Grounded, &mut Body, &mut Crouch), With<Player>>,
+    mut collision_params: ParamSet<(Query<&mut CollisionLayers>, ShapeIntersections)>,
+    q_transform: Query<&Transform>,
     input_blocker: Res<InputBlocker>,
-    mut q_player: Query<
-        (
-            Entity,
-            &Grounded,
-            &mut Body,
-            &mut Crouch,
-            Option<&Slide>,
-            &Transform,
-        ),
-        With<Player>,
-    >,
+    input: Res<ActionState<Inputs>>,
     mut commands: Commands,
-    mut collision_layers_set: ParamSet<(
-        Query<&mut CollisionLayers>,
-        ShapeIntersections,
-    )>
 ) {
     let axis_data = match input.clamped_axis_pair(&Inputs::Directional) {
         Some(data) => data.xy(),
@@ -91,64 +77,61 @@ pub fn crouching_behavior_player(
     let input_crouching =
         !input_blocker.check(Inputs::Directional) && axis_data.x.abs() < 0.2 && axis_data.y < 0.;
 
-    for (entity, grounded, mut body, mut state, o_slide, transform) in q_player.iter_mut() {
-        let trying_crouch = if let Some(slide) = o_slide {
-            (input_crouching && grounded.check())
-                || !matches!(slide.stage(), super::slide::Stage::Dormant)
-        } else {
-            input_crouching && grounded.check()
-        };
+    for (entity, slide, grounded, mut body, mut state) in q_player.iter_mut() {
+        let trying_crouch =
+            slide.is_some_and(|data| data.check()) || (input_crouching && grounded.check());
 
         match &state.stage {
             Stage::Standing if trying_crouch => {
-                let mut q_collision_layer = collision_layers_set.p0();
-                let Ok(mut old_body_collider_collision_group) =
-                    q_collision_layer.get_mut(body.collider_ref)
+                let mut q_collision_group = collision_params.p0();
+
+                let Ok(mut body_collision_group) = q_collision_group.get_mut(body.collider_ref)
                 else {
                     return;
                 };
 
-                *old_body_collider_collision_group = Group::inactive();
-                let new_collider = Crouch::spawn_collision_collider(
+                *body_collision_group = CollisionGroup::inactive();
+
+                state.set_stage(Stage::Crouching {
+                    collider_storage: body.collider_ref,
+                });
+
+                body.collider_ref = Crouch::spawn_collision_collider(
                     &mut commands,
                     entity,
                     body.height,
                     body.width,
                 );
-
-                state.set_stage(Stage::Crouching {
-                    collider_storage: body.collider_ref,
-                });
-                
-                body.collider_ref = new_collider;
             }
-            Stage::Crouching {
-                collider_storage,
-            } if !trying_crouch => {
-                let mut shape_intersections = collision_layers_set.p1();
-                if shape_intersections
+            Stage::Crouching { collider_storage } if !trying_crouch => {
+                let Ok(transform) = q_transform.get(entity) else {
+                    return;
+                };
+
+                if !collision_params
+                    .p1()
                     .shape_intersections(
                         &Collider::rectangle(body.width / 2., body.height / 2.),
                         transform.translation.xy() + Vec2::new(0., body.height / 4.),
                         0.,
-                        Group::Environment.into(),
+                        CollisionGroup::filter(ENVIRONMENT),
                     )
-                    .len()
-                    == 0
+                    .is_empty()
                 {
-                    drop(shape_intersections); // Drop shape_intersections so we can get a &mut CollisionLayers without overlapping SpacialQuery's &CollisionLayers.
-                    commands.entity(body.collider_ref).despawn_recursive();
-
-                    body.collider_ref = *collider_storage;
-
-                    let mut q_collision_layers = collision_layers_set.p0();
-                    let Ok(mut collision_group) = q_collision_layers.get_mut(body.collider_ref) else {
-                        return;
-                    };
-                    *collision_group = Group::collider();
-
-                    state.set_stage(Stage::Standing);
+                    return;
                 }
+
+                commands.entity(body.collider_ref).despawn_recursive();
+
+                body.collider_ref = *collider_storage;
+
+                let mut q_collision_layers = collision_params.p0();
+                let Ok(mut collision_group) = q_collision_layers.get_mut(body.collider_ref) else {
+                    return;
+                };
+                *collision_group = CollisionGroup::collider();
+
+                state.set_stage(Stage::Standing);
             }
             _ => {}
         }
@@ -162,59 +145,3 @@ impl Plugin for CrouchBehavior {
         app.add_systems(Update, crouching_behavior_player);
     }
 }
-
-// pub fn crouching_state_change(
-//     mut q_state: Query<&mut Crouch>,
-//     mut q_collider: Query<&mut CollisionGroups, With<UpperCollider>>,
-//     q_stuck: Query<Entity, With<StuckCheck>>,
-//     rapier_context: Res<RapierContext>,
-// ) {
-//     for (mut state, mut group, stuck_check) in izip!(
-//         &mut q_state.iter_mut(),
-//         &mut q_collider.iter_mut(),
-//         q_stuck.iter()
-//     ) {
-//         if state.is_changed() || state.stuck {
-//             if state.check() {
-//                 group.memberships = Group::GROUP_3;
-//             } else {
-//                 if rapier_context
-//                     .intersection_pairs_with(stuck_check)
-//                     .any(|(_, _, intersecting)| intersecting)
-//                 {
-//                     state.in_state = true;
-//                     state.stuck = true;
-//                     group.memberships = Group::GROUP_3;
-//                 } else {
-//                     group.memberships = Group::GROUP_2;
-//                     state.stuck = false;
-//                 }
-//             }
-//         }
-//     }
-// }
-
-// impl Crouching {
-//     pub fn start(&mut self) {
-//         if !self.in_state {
-//             self.in_state = true
-//         }
-//     }
-
-//     pub fn stop(&mut self) {
-//         if self.in_state {
-//             self.in_state = false
-//         }
-//     }
-
-//     pub fn check(&self) -> bool {
-//         self.in_state
-//     }
-
-//     pub fn new() -> Self {
-//         Self {
-//             in_state: false,
-//             stuck: false,
-//         }
-//     }
-// }

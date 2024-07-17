@@ -6,8 +6,6 @@ mod components;
 mod resources;
 mod systems;
 
-pub use components::Enemy;
-
 pub struct EnemiesPlugin;
 
 impl Plugin for EnemiesPlugin {

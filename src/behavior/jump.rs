@@ -10,7 +10,7 @@ use crate::{
 use super::crouch::Crouch;
 
 #[derive(Component)]
-pub struct Jumping {
+pub struct Jump {
     pub has_air_jumped: bool,
     pub jump_force: f32,
     stage: Stage,
@@ -21,7 +21,7 @@ pub enum Stage {
     Active,
 }
 
-impl Jumping {
+impl Jump {
     pub fn set_stage(&mut self, stage: Stage) {
         self.stage = stage;
     }
@@ -40,12 +40,7 @@ impl Jumping {
 }
 
 pub fn jumping_behavior_player(
-    mut q_state: Query<(
-        Option<&Crouch>,
-        &Grounded,
-        &mut LinearVelocity,
-        &mut Jumping,
-    )>,
+    mut q_state: Query<(Option<&Crouch>, &Grounded, &mut LinearVelocity, &mut Jump)>,
     input: Res<ActionState<Inputs>>,
     input_blocker: Res<InputBlocker>,
 ) {

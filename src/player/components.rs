@@ -35,13 +35,13 @@ pub struct Grounded {
 impl Grounded {
     pub fn start(&mut self) {
         if !self.in_state {
-            self.in_state = true
+            self.in_state = true;
         }
     }
 
     pub fn stop(&mut self) {
         if self.in_state {
-            self.in_state = false
+            self.in_state = false;
         }
     }
 

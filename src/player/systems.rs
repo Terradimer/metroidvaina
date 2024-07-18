@@ -156,7 +156,7 @@ pub fn update_contact(
             }
         }) {
             if normal.y < 0. {
-                grounded.start() // this already early returns
+                return grounded.start();
             }
         }
     }

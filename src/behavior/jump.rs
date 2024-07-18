@@ -11,8 +11,8 @@ use super::crouch::Crouch;
 
 #[derive(Component)]
 pub struct Jump {
-    pub has_air_jumped: bool,
-    pub force: f32,
+    has_air_jumped: bool,
+    force: f32,
     stage: Stage,
 }
 
@@ -34,8 +34,16 @@ impl Jump {
         }
     }
 
+    pub fn has_air_jumped(&self) -> bool {
+        self.has_air_jumped
+    }
+
+    pub fn force(&self) -> f32 {
+        self.force
+    }
+
     pub fn reset_air_jump(&mut self) {
-        self.has_air_jumped = false
+        self.has_air_jumped = false;
     }
 }
 
@@ -45,7 +53,7 @@ pub fn jumping_behavior_player(
     input_blocker: Res<InputBlocker>,
 ) {
     for (o_crouching, grounded, mut vel, mut state) in q_state.iter_mut() {
-        if o_crouching.is_some_and(|crouching| crouching.check()) && state.has_air_jumped {
+        if o_crouching.is_some_and(super::crouch::Crouch::check) && state.has_air_jumped {
             return;
         }
 

@@ -61,7 +61,7 @@ pub fn kicking_behavior_player(
             Stage::Dormant
                 if input.just_pressed(&Inputs::Jump)
                     && !input_blocker.check(Inputs::Jump)
-                    && jump.has_air_jumped
+                    && jump.has_air_jumped()
                     && move_axis.y < 0. =>
             {
                 input_blocker.block_many(Inputs::all_actions());
@@ -71,12 +71,12 @@ pub fn kicking_behavior_player(
                     vel.x = state.kick_speed * move_axis.x.abs().ceil().copysign(move_axis.x) * 1.1;
                 }
 
-                (*vel).y = -state.kick_speed;
+                vel.y = -state.kick_speed;
                 *vel = LinearVelocity(vel.normalize_or_zero() * vel.length());
             }
             Stage::Active if grounded.check() => {
                 state.stage = Stage::Dormant;
-                input_blocker.clear()
+                input_blocker.clear();
             }
             Stage::Active => {
                 if let Some(other) = shape_intersections
@@ -94,7 +94,7 @@ pub fn kicking_behavior_player(
                     input_blocker.clear();
 
                     jump.set_stage(jump::Stage::Active);
-                    vel.y = jump.force;
+                    vel.y = jump.force();
                     jump.reset_air_jump();
                 }
             }

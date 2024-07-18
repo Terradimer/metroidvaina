@@ -37,7 +37,7 @@ impl DemoSlash {
 
     pub fn set_stage(&mut self, next: Stage) {
         match next {
-            Stage::Windup | Stage::Settle => {
+            Stage::Windup | Stage::Settle=> {
                 self.stage_timer.set_duration(Duration::from_secs_f32(0.1));
             }
             Stage::Active { .. } => {

@@ -24,45 +24,56 @@ codegen-units = 1
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }
+# Lints from all we have decided to ignore.
 type_complexity = "allow" # Bevy queries almost always trigger this.
 
-pedantic = { level = "warn", priority = -1 }
-needless_pass_by_value = "allow" # Bevy systems naturally violate this.
 
-# Unsure ones, removing to have a clean slate to work with
-module_name_repetitions = "allow"
-struct_field_names = "allow"
-semicolon_if_nothing_returned = "allow"
-wildcard_imports = "allow" # Doesn't flag use ...::prelude::*; imports.
-redundant_closure_for_method_calls = "allow"
-match_same_arms = "allow" # Harder to change match arms when they are combined.
-match_wildcard_for_single_variants = "allow"
-cast_precision_loss = "allow" # Probably not, game dev doesn't really care about slight precision loss.
-explicit_iter_loop = "allow" # I find &mut iterable less clear than iterable.iter_mut().
+pedantic = { level = "warn", priority = -1 }
+
+# Lints from pedantic we will actively use.
+redundant_closure_for_method_calls = "warn"
+match_same_arms                    = "warn"
+module_name_repetitions            = "allow" # Allowed pending further discussion.
+struct_field_names                 = "warn" # Can be removed if it becomes too annoying.
+semicolon_if_nothing_returned      = "warn"
+
+# Lints from pedantic we have decided to ignore.
+needless_pass_by_value             = "allow" # Bevy systems naturally violate this.
+wildcard_imports                   = "allow" # Wildcard imports are nice.
+match_wildcard_for_single_variants = "allow" # Core pattern used in behaviors.
+cast_precision_loss                = "allow" # Unavoidable because of how many floats bevy uses.
+explicit_iter_loop                 = "allow" # Recommends less explicit style.
+
 
 restriction = { level = "warn", priority = -1 }
-blanket_clippy_restriction_lints = "allow" # Shut up it's easier to test all the lints at once this way.
-missing_docs_in_private_items = "allow" # Annoying.
-missing_trait_methods = "allow" # Annoying.
-std_instead_of_core = "allow" # Annoying.
-single_char_lifetime_names = "allow" # Annoying.
-as_conversions = "allow" # Annoying.
-single_call_fn = "allow" # Annoying.
-shadow_unrelated = "allow" # Annoying.
-wildcard_enum_match_arm = "allow" # Annoying, but intriguing.
-pattern_type_mismatch = "allow" # Annoying, but intriguing.
-implicit_return = "allow" # Would be nice to have for the complex cases, but lints annoyingly on the simple cases.
-arithmetic_side_effects = "allow" # Would be nice to have for finding possible div by zero panics, but lints way too much other stuff.
-absolute_paths = "allow" # Would be nice for fixing some styling, but too annoying when it is intentional.
-default_numeric_fallback = "allow" # Could be useful for optimizing memory useage, but it is way too early to care.
-float_arithmetic = "allow" # Everything in bevy is floats.
-print_stdout = "allow" # Sucks for development.
-use_debug = "allow" # Sucks for development.
-mod_module_files = "allow" # Opposite our prefered style (no mod.rs files).
-self_named_module_files = "warn" # Our prefered style (mod.rs files).
-pub_with_shorthand = "allow" # Opposite our prefered style (requires the "in" for pub(in ...)).
-pub_without_shorthand = "warn" # Our prefered style (no "in" for pub(...)).
-str_to_string = "allow" # I find "str".to_string() much more obivous than "str".to_owned().
+blanket_clippy_restriction_lints = "allow" # Blanket enable restriction to go through all the lints faster
 
-# Unsure
-partial_pub_fields = "allow" # Can catch behaviors that don't match the templates.
+# Lints from restriction we will actively use.
+partial_pub_fields      = "warn" # Helps keep behaviors explicit.
+pub_without_shorthand   = "warn" # No "in" for pub(crate).
+self_named_module_files = "warn" # Use mod.rs files.
+
+# Lints from restriction we have decided to ignore.
+# Possibly useful for release builds
+default_numeric_fallback = "allow" # Could be useful for optimizing memory useage.
+print_stdout             = "allow"
+use_debug                = "allow"
+# Annoying.
+missing_docs_in_private_items = "allow"
+missing_trait_methods         = "allow"
+std_instead_of_core           = "allow"
+single_char_lifetime_names    = "allow"
+as_conversions                = "allow"
+single_call_fn                = "allow"
+shadow_unrelated              = "allow"
+float_arithmetic              = "allow" # Everything in bevy is floats.
+# Possibly useful, but overly broad.
+wildcard_enum_match_arm = "allow"
+pattern_type_mismatch   = "allow"
+implicit_return         = "allow"
+arithmetic_side_effects = "allow"
+absolute_paths          = "allow"
+# Opposes our existing style.
+mod_module_files   = "allow" # No mod.rs files
+pub_with_shorthand = "allow" # Required "in" for pub(in ...).
+str_to_string      = "allow" # Recommends less explicit style.

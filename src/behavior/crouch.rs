@@ -79,7 +79,7 @@ pub fn crouching_behavior_player(
 
     for (entity, slide, grounded, mut body, mut state) in q_player.iter_mut() {
         let trying_crouch =
-            slide.is_some_and(|data| data.check()) || (input_crouching && grounded.check());
+            slide.is_some_and(super::slide::Slide::check) || (input_crouching && grounded.check());
 
         match &state.stage {
             Stage::Standing if trying_crouch => {

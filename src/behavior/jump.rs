@@ -12,7 +12,7 @@ use super::crouch::Crouch;
 #[derive(Component)]
 pub struct Jump {
     pub has_air_jumped: bool,
-    pub jump_force: f32,
+    pub force: f32,
     stage: Stage,
 }
 
@@ -29,7 +29,7 @@ impl Jump {
     pub fn new(jump_force: f32) -> Self {
         Self {
             has_air_jumped: false,
-            jump_force,
+            force: jump_force,
             stage: Stage::Dormant,
         }
     }
@@ -58,7 +58,7 @@ pub fn jumping_behavior_player(
                 state.has_air_jumped = !grounded.check();
 
                 state.set_stage(Stage::Active);
-                vel.y = state.jump_force;
+                vel.y = state.force;
                 return;
             }
             Stage::Active if !input.pressed(&Inputs::Jump) || vel.y < 0. => {

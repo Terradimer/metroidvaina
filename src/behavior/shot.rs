@@ -46,7 +46,7 @@ impl Shot {
 pub fn projectile_behavior(
     mut commands: Commands,
     mut q_bullet: Query<(Entity, &mut Transform), With<Projectile>>,
-    time: Res<ScaledTime>,
+    time: Res<Time>,
     q_colliding_entities: Query<&CollidingEntities>,
 ) {
     for (collider, mut tranform) in q_bullet.iter() {

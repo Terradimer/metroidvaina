@@ -9,7 +9,7 @@ use crate::{
     player::components::{Body, Grounded, Player},
 };
 
-use super::jump::{self, Jump};
+use super::jump::{self, jumping_behavior_player, Jump};
 
 #[derive(Component)]
 pub struct Kick {
@@ -107,6 +107,9 @@ pub struct KickingBehavior;
 
 impl Plugin for KickingBehavior {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, kicking_behavior_player);
+        app.add_systems(
+            Update,
+            kicking_behavior_player.before(jumping_behavior_player),
+        );
     }
 }

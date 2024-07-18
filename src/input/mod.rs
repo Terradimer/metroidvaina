@@ -8,7 +8,7 @@ use leafwing_input_manager::{
 
 use self::resources::InputBlocker;
 
-pub mod buffers;
+// pub mod buffers;
 pub mod resources;
 
 #[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]

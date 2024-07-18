@@ -71,7 +71,7 @@ pub fn kicking_behavior_player(
                     vel.x = state.kick_speed * move_axis.x.abs().ceil().copysign(move_axis.x) * 1.1;
                 }
 
-                (*vel).y = -state.kick_speed;
+                vel.y = -state.kick_speed;
                 *vel = LinearVelocity(vel.normalize_or_zero() * vel.length());
             }
             Stage::Active if grounded.check() => {

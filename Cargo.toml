@@ -21,3 +21,48 @@ opt-level = 3
 
 [profile.release]
 codegen-units = 1
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+type_complexity = "allow" # Bevy queries almost always trigger this.
+
+pedantic = { level = "warn", priority = -1 }
+needless_pass_by_value = "allow" # Bevy systems naturally violate this.
+
+# Unsure ones, removing to have a clean slate to work with
+module_name_repetitions = "allow"
+struct_field_names = "allow"
+semicolon_if_nothing_returned = "allow"
+wildcard_imports = "allow" # Doesn't flag use ...::prelude::*; imports.
+redundant_closure_for_method_calls = "allow"
+match_same_arms = "allow" # Harder to change match arms when they are combined.
+match_wildcard_for_single_variants = "allow"
+cast_precision_loss = "allow" # Probably not, game dev doesn't really care about slight precision loss.
+explicit_iter_loop = "allow" # I find &mut iterable less clear than iterable.iter_mut().
+
+restriction = { level = "warn", priority = -1 }
+blanket_clippy_restriction_lints = "allow" # Shut up it's easier to test all the lints at once this way.
+missing_docs_in_private_items = "allow" # Annoying.
+missing_trait_methods = "allow" # Annoying.
+std_instead_of_core = "allow" # Annoying.
+single_char_lifetime_names = "allow" # Annoying.
+as_conversions = "allow" # Annoying.
+single_call_fn = "allow" # Annoying.
+shadow_unrelated = "allow" # Annoying.
+wildcard_enum_match_arm = "allow" # Annoying, but intriguing.
+pattern_type_mismatch = "allow" # Annoying, but intriguing.
+implicit_return = "allow" # Would be nice to have for the complex cases, but lints annoyingly on the simple cases.
+arithmetic_side_effects = "allow" # Would be nice to have for finding possible div by zero panics, but lints way too much other stuff.
+absolute_paths = "allow" # Would be nice for fixing some styling, but too annoying when it is intentional.
+default_numeric_fallback = "allow" # Could be useful for optimizing memory useage, but it is way too early to care.
+float_arithmetic = "allow" # Everything in bevy is floats.
+print_stdout = "allow" # Sucks for development.
+use_debug = "allow" # Sucks for development.
+mod_module_files = "allow" # Opposite our prefered style (no mod.rs files).
+self_named_module_files = "warn" # Our prefered style (mod.rs files).
+pub_with_shorthand = "allow" # Opposite our prefered style (requires the "in" for pub(in ...)).
+pub_without_shorthand = "warn" # Our prefered style (no "in" for pub(...)).
+str_to_string = "allow" # I find "str".to_string() much more obivous than "str".to_owned().
+
+# Unsure
+partial_pub_fields = "allow" # Can catch behaviors that don't match the templates.

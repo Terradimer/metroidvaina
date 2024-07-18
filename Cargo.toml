@@ -31,18 +31,18 @@ type_complexity = "allow" # Bevy queries almost always trigger this.
 pedantic = { level = "warn", priority = -1 }
 
 # Lints from pedantic we will actively use.
-redundant_closure_for_method_calls = "warn"
 match_same_arms                    = "warn"
-module_name_repetitions            = "allow" # Allowed pending further discussion.
-struct_field_names                 = "warn" # Can be removed if it becomes too annoying.
+redundant_closure_for_method_calls = "warn"
 semicolon_if_nothing_returned      = "warn"
+struct_field_names                 = "warn" # Can be removed if it becomes too annoying.
 
 # Lints from pedantic we have decided to ignore.
-needless_pass_by_value             = "allow" # Bevy systems naturally violate this.
-wildcard_imports                   = "allow" # Wildcard imports are nice.
-match_wildcard_for_single_variants = "allow" # Core pattern used in behaviors.
 cast_precision_loss                = "allow" # Unavoidable because of how many floats bevy uses.
 explicit_iter_loop                 = "allow" # Recommends less explicit style.
+match_wildcard_for_single_variants = "allow" # Core pattern used in behaviors.
+module_name_repetitions            = "allow" # Causes issues with name duplication on Plugins.
+needless_pass_by_value             = "allow" # Bevy systems naturally violate this.
+wildcard_imports                   = "allow" # Wildcard imports are nice.
 
 
 restriction = { level = "warn", priority = -1 }
@@ -59,20 +59,20 @@ default_numeric_fallback = "allow" # Could be useful for optimizing memory useag
 print_stdout             = "allow"
 use_debug                = "allow"
 # Annoying.
+as_conversions                = "allow"
+float_arithmetic              = "allow" # Everything in bevy is floats.
 missing_docs_in_private_items = "allow"
 missing_trait_methods         = "allow"
-std_instead_of_core           = "allow"
-single_char_lifetime_names    = "allow"
-as_conversions                = "allow"
-single_call_fn                = "allow"
 shadow_unrelated              = "allow"
-float_arithmetic              = "allow" # Everything in bevy is floats.
+single_call_fn                = "allow"
+single_char_lifetime_names    = "allow"
+std_instead_of_core           = "allow"
 # Possibly useful, but overly broad.
-wildcard_enum_match_arm = "allow"
-pattern_type_mismatch   = "allow"
-implicit_return         = "allow"
-arithmetic_side_effects = "allow"
 absolute_paths          = "allow"
+arithmetic_side_effects = "allow"
+implicit_return         = "allow"
+pattern_type_mismatch   = "allow"
+wildcard_enum_match_arm = "allow"
 # Opposes our existing style.
 mod_module_files   = "allow" # No mod.rs files
 pub_with_shorthand = "allow" # Required "in" for pub(in ...).

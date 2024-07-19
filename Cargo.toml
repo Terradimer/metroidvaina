@@ -56,11 +56,13 @@ self_named_module_files = "warn" # Use mod.rs files.
 # Lints from restriction we have decided to ignore.
 # Possibly useful for release builds
 default_numeric_fallback = "allow" # Could be useful for optimizing memory useage.
+panic                    = "allow"
 print_stdout             = "allow"
 use_debug                = "allow"
 # Annoying.
 as_conversions                = "allow"
-float_arithmetic              = "allow" # Everything in bevy is floats.
+float_arithmetic              = "allow"
+min_ident_chars               = "allow"
 missing_docs_in_private_items = "allow"
 missing_trait_methods         = "allow"
 shadow_unrelated              = "allow"

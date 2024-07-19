@@ -105,7 +105,7 @@ pub fn horizontal_movement(
 
     let (mut vel, crouching) = query_guard!(q_player.get_single_mut());
 
-    if !(move_axis.x.abs() > 0.2)
+    if move_axis.x.abs() <= 0.2
         || vel.x.signum() * move_axis.x.signum() < 0.
         || input_blocker.check(Inputs::Directional)
     {
@@ -156,7 +156,7 @@ pub fn update_contact(
             }
         }) {
             if normal.y < 0. {
-                grounded.start() // this already early returns
+                return grounded.start();
             }
         }
     }

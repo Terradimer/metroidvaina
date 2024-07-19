@@ -3,9 +3,13 @@ use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
+    collision_groups::*,
     input::{resources::InputBlocker, Inputs},
-    player::components::{FacingDirection, Player},
+    player::components::{FacingDirection, Grounded, Player},
+    shape_intersections::ShapeIntersections,
 };
+
+use super::BehaviorInput;
 
 #[derive(Component)]
 pub struct Shot {
@@ -14,7 +18,9 @@ pub struct Shot {
 }
 
 #[derive(Component)]
-pub struct Projectile;
+pub struct Projectile {
+    direction: f32,
+}
 
 pub enum Stage {
     Dormant,
@@ -37,7 +43,7 @@ impl Shot {
     pub fn spawn_projectile(commands: &mut Commands, origin: Vec3, direction: f32) {
         commands.spawn((
             SpatialBundle::from_transform(Transform::from_translation(origin)),
-            Projectile,
+            Projectile { direction },
             Name::new("Bullet"),
         ));
     }
@@ -45,21 +51,26 @@ impl Shot {
 
 pub fn projectile_behavior(
     mut commands: Commands,
-    mut q_bullet: Query<(Entity, &mut Transform), With<Projectile>>,
+    mut q_bullet: Query<(Entity, &mut Transform, &Projectile)>,
     time: Res<Time>,
-    q_colliding_entities: Query<&CollidingEntities>,
+    mut shape_intersections: ShapeIntersections,
 ) {
-    for (collider, mut tranform) in q_bullet.iter() {
-        // tranform.translation.x += 300. * time.delta_seconds();
+    for (collider, mut transform, projectile) in q_bullet.iter_mut() {
+        transform.translation.x += 500. * time.delta_seconds() * projectile.direction;
 
-        for (entity1, entity2, intersects) in rapier_context.intersection_pairs_with(collider)
-        // .filter(|(_, _, intersecting)| *intersecting)
+        // I use a rectangle collider because circle colliders dont render in debug for some reason
+        if let Some(other) = shape_intersections
+            .shape_intersections(
+                &Collider::rectangle(15., 15.),
+                transform.translation.xy(),
+                0.,
+                CollisionGroup::filter(ENEMY | ENVIRONMENT),
+            )
+            .first()
         {
-            println!("{entity1:?} {entity2:?} {intersects}");
-            // add another query and check if the hit entity has a health component
-            // if not, proceed as normal
-            // Since we dont have "hp" yet, we dont use either entity collision and just despawn the bullet
-            // commands.entity(collider).despawn_recursive();
+            // Since we dont have "hp" yet, we just despawn the bullet
+            println!("Shot hit: {other:?}");
+            commands.entity(collider).despawn_recursive();
         }
     }
 }
@@ -68,23 +79,36 @@ pub fn shot_player_behavior(
     mut commands: Commands,
     input: Res<ActionState<Inputs>>,
     mut input_blocker: ResMut<InputBlocker>,
-    time: Res<ScaledTime>,
-    mut q_player: Query<(&Transform, &FacingDirection, &mut Shot), With<Player>>,
+    time: Res<Time>,
+    mut q_player: Query<
+        (
+            &Transform,
+            &mut LinearVelocity,
+            &FacingDirection,
+            &mut BehaviorInput<Shot>,
+            &Grounded,
+        ),
+        With<Player>,
+    >,
 ) {
-    for (transform, direction, mut state) in q_player.iter_mut() {
-        let timer_finished = state.stage_timer.tick(time.delta).finished();
+    for (transform, mut velocity, direction, mut behavior_input, grounded) in q_player.iter_mut() {
+        let (behavior, inputs) = behavior_input.get_mut();
+        let timer_finished = behavior.stage_timer.tick(time.delta()).finished();
 
-        match &state.stage {
-            Stage::Dormant
-                if input.just_pressed(&Inputs::Secondary)
-                    && !input_blocker.check(Inputs::Secondary) =>
-            {
-                state.set_stage(Stage::Stall);
+        match &behavior.stage {
+            Stage::Dormant if input.just_pressed(&inputs) && !input_blocker.check(inputs) => {
+                behavior.set_stage(Stage::Stall);
                 Shot::spawn_projectile(&mut commands, transform.translation, direction.get());
-                input_blocker.block_many(Inputs::all_actions());
+
+                if grounded.check() {
+                    input_blocker.block_many(Inputs::all_actions());
+                    velocity.x = 0.;
+                } else {
+                    input_blocker.block_many(Inputs::non_directional());
+                }
             }
             Stage::Stall if timer_finished => {
-                state.set_stage(Stage::Dormant);
+                behavior.set_stage(Stage::Dormant);
                 input_blocker.clear();
             }
             _ => {}

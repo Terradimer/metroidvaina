@@ -5,7 +5,7 @@ use bevy::{
 };
 use leafwing_input_manager::action_state::ActionState;
 
-use crate::behavior::{jump::Jump, kick::Kick};
+use crate::behavior::{jump::Jump, kick::Kick, shot::Shot, BehaviorInput};
 use crate::{behavior::crouch::Crouch, collision_groups::CollisionGroup};
 use crate::{behavior::slide::Slide, collision_groups::PLAYER};
 use crate::{
@@ -82,11 +82,11 @@ pub fn startup(
         ))
         .insert((
             Crouch::new(),
-            DemoSlash::new(),
+            BehaviorInput::<DemoSlash>::new(Inputs::Primary, DemoSlash::new()),
+            BehaviorInput::<Shot>::new(Inputs::Secondary, Shot::new()),
             Slide::new(700.),
             Jump::new(600.),
             Kick::new(2200.),
-            // Shot::new(),
         ))
         .add_child(collider_ref)
         .add_child(hurtbox_ref);
@@ -105,7 +105,7 @@ pub fn horizontal_movement(
 
     let (mut vel, crouching) = query_guard!(q_player.get_single_mut());
 
-    if move_axis.x.abs() <= 0.2
+    if !(move_axis.x.abs() > 0.2)
         || vel.x.signum() * move_axis.x.signum() < 0.
         || input_blocker.check(Inputs::Directional)
     {
@@ -156,7 +156,7 @@ pub fn update_contact(
             }
         }) {
             if normal.y < 0. {
-                return grounded.start();
+                grounded.start() // this already early returns
             }
         }
     }

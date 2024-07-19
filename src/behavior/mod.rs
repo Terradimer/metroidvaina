@@ -1,19 +1,18 @@
 use bevy::app::Plugin;
+use bevy::prelude::*;
+
+use crate::input::Inputs;
 
 use self::{
-    crouch::CrouchBehavior,
-    demo_slash::SlashingBehavior,
-    jump::JumpBehavior,
-    kick::KickingBehavior,
-    // shot::ShotBehavior,
-    slide::SlidingBehavior,
+    crouch::CrouchBehavior, demo_slash::SlashingBehavior, jump::JumpBehavior,
+    kick::KickingBehavior, shot::ShotBehavior, slide::SlidingBehavior,
 };
 
 pub mod crouch;
 pub mod demo_slash;
 pub mod jump;
 pub mod kick;
-// pub mod shot;
+pub mod shot;
 pub mod slide;
 
 pub struct BehaviorPlugin;
@@ -26,7 +25,23 @@ impl Plugin for BehaviorPlugin {
             JumpBehavior,
             SlashingBehavior,
             CrouchBehavior,
-            // ShotBehavior,
+            ShotBehavior,
         ));
+    }
+}
+
+#[derive(Component)]
+pub struct BehaviorInput<T: Component> {
+    pub input: Inputs,
+    pub behavior: T,
+}
+
+impl<T: Component> BehaviorInput<T> {
+    pub fn new(input: Inputs, behavior: T) -> Self {
+        Self { input, behavior }
+    }
+
+    pub fn get_mut(&mut self) -> (&mut T, Inputs) {
+        (&mut self.behavior, self.input)
     }
 }

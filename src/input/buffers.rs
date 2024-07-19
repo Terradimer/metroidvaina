@@ -1,8 +1,10 @@
 use bevy::prelude::*;
 
 #[allow(dead_code)]
-#[derive(Resource)]
-pub struct InputBuffers {
-    // jump: Timer,
+#[derive(Component)]
+pub struct InputBuffer {
+    jump: Timer,
     // directional:
 }
+
+impl InputBuffer {}

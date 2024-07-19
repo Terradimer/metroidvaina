@@ -51,6 +51,10 @@ impl Inputs {
             Self::Special,
         ]
     }
+
+    pub fn non_directional() -> Vec<Inputs> {
+        vec![Self::Jump, Self::Primary, Self::Secondary, Self::Special]
+    }
 }
 
 pub struct InputHandlerPlugin;

@@ -12,6 +12,8 @@ use crate::{
     player::components::{FacingDirection, Grounded, Player},
 };
 
+use super::BehaviorInput;
+
 #[derive(Component)]
 pub struct DemoSlash {
     stage: Stage,
@@ -37,7 +39,7 @@ impl DemoSlash {
 
     pub fn set_stage(&mut self, next: Stage) {
         match next {
-            Stage::Windup | Stage::Settle=> {
+            Stage::Windup | Stage::Settle => {
                 self.stage_timer.set_duration(Duration::from_secs_f32(0.1));
             }
             Stage::Active { .. } => {
@@ -57,7 +59,7 @@ pub fn demo_slash_player_behavior(
     mut q_state: Query<
         (
             &mut LinearVelocity,
-            &mut DemoSlash,
+            &mut BehaviorInput<DemoSlash>,
             &Grounded,
             &FacingDirection,
             &Transform,
@@ -67,21 +69,14 @@ pub fn demo_slash_player_behavior(
     time: Res<Time>,
     mut shape_intersections: ShapeIntersections,
 ) {
-    for (mut vel, mut state, grounded, direction, transform) in q_state.iter_mut() {
-        let timer_finished = state.stage_timer.tick(time.delta()).finished();
+    for (mut vel, mut behavior_input, grounded, direction, transform) in q_state.iter_mut() {
+        let (behavior, inputs) = behavior_input.get_mut();
+        let timer_finished = behavior.stage_timer.tick(time.delta()).finished();
 
-        match &state.stage {
-            Stage::Dormant
-                if input.just_pressed(&Inputs::Primary)
-                    && !input_blocker.check(Inputs::Primary) =>
-            {
-                state.set_stage(Stage::Windup);
-                input_blocker.block_many(
-                    Inputs::all_actions()
-                        .into_iter()
-                        .filter(|input| !matches!(*input, Inputs::Directional))
-                        .collect(),
-                );
+        match &behavior.stage {
+            Stage::Dormant if input.just_pressed(&inputs) && !input_blocker.check(inputs) => {
+                behavior.set_stage(Stage::Windup);
+                input_blocker.block_many(Inputs::non_directional());
 
                 if grounded.check() {
                     input_blocker.block_many(Inputs::all_actions());
@@ -89,13 +84,13 @@ pub fn demo_slash_player_behavior(
                 }
             }
             Stage::Windup if timer_finished => {
-                state.set_stage(Stage::Active);
+                behavior.set_stage(Stage::Active);
             }
             Stage::Active if timer_finished => {
-                state.set_stage(Stage::Settle);
+                behavior.set_stage(Stage::Settle);
                 input_blocker.clear();
             }
-            Stage::Active if !state.has_hit => {
+            Stage::Active if !behavior.has_hit => {
                 let collider_size: f32 = 25.;
                 let slash_size_side = collider_size / 2.25;
                 for i in 0..2 {
@@ -115,7 +110,7 @@ pub fn demo_slash_player_behavior(
                         .first()
                     {
                         println!("Slashed: {other:?}",);
-                        state.has_hit = true;
+                        behavior.has_hit = true;
                         return;
                     }
                 }
@@ -131,11 +126,11 @@ pub fn demo_slash_player_behavior(
                     .first()
                 {
                     println!("Slashed: {other:?}",);
-                    state.has_hit = true;
+                    behavior.has_hit = true;
                 };
             }
             Stage::Settle if timer_finished => {
-                state.set_stage(Stage::Dormant);
+                behavior.set_stage(Stage::Dormant);
             }
             _ => {}
         }

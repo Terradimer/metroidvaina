@@ -1,7 +1,7 @@
 use avian2d::parry::shape::TypedShape;
+use avian2d::prelude::*;
 use bevy::color::palettes::css;
 use bevy::prelude::*;
-use avian2d::prelude::*;
 use bevy_ecs::system::SystemParam;
 
 #[derive(SystemParam)]
@@ -19,10 +19,11 @@ impl ShapeIntersections<'_, '_> {
         query_filter: SpatialQueryFilter,
     ) -> Vec<Entity> {
         match shape.shape_scaled().as_typed_shape() {
-            TypedShape::Cuboid(s) => 
-            self.gizmos.primitive_2d(&Rectangle { half_size: s.half_extents.into()}, shape_position, shape_rotation, css::YELLOW),
+            TypedShape::Cuboid(s) => { self.gizmos.primitive_2d(&Rectangle { half_size: s.half_extents.into()}, shape_position, shape_rotation, css::YELLOW); },
+            TypedShape::Ball(s) => { self.gizmos.primitive_2d(&Circle { radius: s.radius }, shape_position, shape_rotation, css::YELLOW); },
             x => panic!("Debug rendering for {:?} is not yet implemented. Consider implementing it in {}, using a different implemented collider shape, or replacing ShapeIntersections with SpatialQuery to disable debug rendering.", x, file!())
         }
-        self.spatial_query.shape_intersections(shape, shape_position, shape_rotation, query_filter)
+        self.spatial_query
+            .shape_intersections(shape, shape_position, shape_rotation, query_filter)
     }
 }

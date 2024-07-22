@@ -5,10 +5,11 @@ use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::collision_groups::ENEMY;
+use crate::input::buffers::InputBuffer;
 use crate::shape_intersections::ShapeIntersections;
 use crate::{
     collision_groups::*,
-    input::{resources::InputBlocker, Inputs},
+    input::Inputs,
     player::components::{FacingDirection, Grounded, Player},
 };
 
@@ -55,10 +56,10 @@ impl DemoSlash {
 
 pub fn demo_slash_player_behavior(
     input: Res<ActionState<Inputs>>,
-    mut input_blocker: ResMut<InputBlocker>,
     mut q_state: Query<
         (
             &mut LinearVelocity,
+            &mut InputBuffer,
             &mut BehaviorInput<DemoSlash>,
             &Grounded,
             &FacingDirection,
@@ -69,17 +70,19 @@ pub fn demo_slash_player_behavior(
     time: Res<Time>,
     mut shape_intersections: ShapeIntersections,
 ) {
-    for (mut vel, mut behavior_input, grounded, direction, transform) in q_state.iter_mut() {
+    for (mut vel, mut buffer, mut behavior_input, grounded, direction, transform) in
+        q_state.iter_mut()
+    {
         let (behavior, inputs) = behavior_input.get_mut();
         let timer_finished = behavior.stage_timer.tick(time.delta()).finished();
 
         match &behavior.stage {
-            Stage::Dormant if input.just_pressed(&inputs) && !input_blocker.check(inputs) => {
+            Stage::Dormant if input.just_pressed(&inputs) && !buffer.blocked(inputs) => {
                 behavior.set_stage(Stage::Windup);
-                input_blocker.block_many(Inputs::non_directional());
+                buffer.block_many(Inputs::non_directional());
 
                 if grounded.check() {
-                    input_blocker.block_many(Inputs::all_actions());
+                    buffer.block_many(Inputs::all_actions());
                     vel.x = 0.;
                 }
             }
@@ -88,7 +91,7 @@ pub fn demo_slash_player_behavior(
             }
             Stage::Active if timer_finished => {
                 behavior.set_stage(Stage::Settle);
-                input_blocker.clear();
+                buffer.clear_blocker();
             }
             Stage::Active if !behavior.has_hit => {
                 let collider_size: f32 = 25.;

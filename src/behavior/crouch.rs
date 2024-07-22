@@ -1,4 +1,5 @@
 use crate::collision_groups::ENVIRONMENT;
+use crate::input::buffers::InputBuffer;
 use crate::shape_intersections::ShapeIntersections;
 use crate::{collision_groups::CollisionGroup, player::components::Grounded};
 use avian2d::prelude::*;
@@ -6,7 +7,7 @@ use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
-    input::{resources::InputBlocker, Inputs},
+    input::Inputs,
     player::components::{Body, Player},
 };
 
@@ -69,10 +70,19 @@ impl Crouch {
 }
 
 pub fn crouching_behavior_player(
-    mut q_player: Query<(Entity, Option<&Slide>, &Grounded, &mut Body, &mut Crouch), With<Player>>,
+    mut q_player: Query<
+        (
+            Entity,
+            Option<&Slide>,
+            &Grounded,
+            &mut Body,
+            &mut Crouch,
+            &mut InputBuffer,
+        ),
+        With<Player>,
+    >,
     mut collision_params: ParamSet<(Query<&mut CollisionLayers>, ShapeIntersections)>,
     q_transform: Query<&Transform>,
-    input_blocker: Res<InputBlocker>,
     input: Res<ActionState<Inputs>>,
     mut commands: Commands,
 ) {
@@ -81,10 +91,11 @@ pub fn crouching_behavior_player(
         None => return,
     };
 
-    let input_crouching =
-        !input_blocker.check(Inputs::Directional) && axis_data.x.abs() < 0.2 && axis_data.y < 0.;
+    for (entity, slide, grounded, mut body, mut state, input_buffer) in q_player.iter_mut() {
+        let input_crouching = !input_buffer.blocked(Inputs::Directional)
+            && axis_data.x.abs() < 0.2
+            && axis_data.y < 0.;
 
-    for (entity, slide, grounded, mut body, mut state) in q_player.iter_mut() {
         let trying_crouch =
             slide.is_some_and(super::slide::Slide::check) || (input_crouching && grounded.check());
 

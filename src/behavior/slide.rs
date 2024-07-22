@@ -5,9 +5,10 @@ use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use crate::collision_groups::{CollisionGroup, ENEMY};
+use crate::input::buffers::InputBuffer;
 use crate::shape_intersections::ShapeIntersections;
 use crate::{
-    input::{resources::InputBlocker, Inputs},
+    input::Inputs,
     player::components::{Body, FacingDirection, Player},
 };
 
@@ -60,10 +61,10 @@ impl Slide {
 
 fn sliding_handler_player(
     input: Res<ActionState<Inputs>>,
-    mut input_blocker: ResMut<InputBlocker>,
     mut q_player: Query<
         (
             &mut LinearVelocity,
+            &mut InputBuffer,
             &FacingDirection,
             &Crouch,
             &Body,
@@ -75,16 +76,18 @@ fn sliding_handler_player(
     time: Res<Time>,
     mut shape_intersections: ShapeIntersections,
 ) {
-    for (mut velocity, direction, crouching, body, mut state, transform) in q_player.iter_mut() {
+    for (mut velocity, mut buffer, direction, crouching, body, mut state, transform) in
+        q_player.iter_mut()
+    {
         let timer_finished = state.stage_timer.tick(time.delta()).finished();
 
         match state.stage {
             Stage::Dormant
                 if crouching.check()
                     && input.just_pressed(&Inputs::Jump)
-                    && !input_blocker.check(Inputs::Jump) =>
+                    && !buffer.blocked(Inputs::Jump) =>
             {
-                input_blocker.block_many(Inputs::all_actions());
+                buffer.block_many(Inputs::all_actions());
                 state.set_stage(Stage::Accelerate);
             }
             Stage::Accelerate if timer_finished => {
@@ -111,7 +114,7 @@ fn sliding_handler_player(
                 }
             }
             Stage::Settle if timer_finished => {
-                input_blocker.clear();
+                buffer.clear_blocker();
                 state.set_stage(Stage::Dormant);
             }
             _ => {}

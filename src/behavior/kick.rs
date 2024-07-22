@@ -1,11 +1,14 @@
+use std::time::Duration;
+
 use avian2d::prelude::*;
 use bevy::prelude::*;
-use leafwing_input_manager::action_state::ActionState;
 
+use crate::input::buffers::{ActionType, Direction, InputBuffer};
+use crate::player::components::FacingDirection;
 use crate::shape_intersections::ShapeIntersections;
 use crate::{
     collision_groups::*,
-    input::{resources::InputBlocker, Inputs},
+    input::Inputs,
     player::components::{Body, Grounded, Player},
 };
 
@@ -36,39 +39,58 @@ impl Kick {
 }
 
 pub fn kicking_behavior_player(
-    input: Res<ActionState<Inputs>>,
-    mut input_blocker: ResMut<InputBlocker>,
     mut q_state: Query<
         (
             &mut LinearVelocity,
+            &mut InputBuffer,
             &mut Jump,
             &mut Kick,
             &Body,
             &Grounded,
             &Transform,
+            &mut GravityScale,
+            &FacingDirection,
         ),
         With<Player>,
     >,
     mut shape_intersections: ShapeIntersections,
 ) {
-    let move_axis = match input.clamped_axis_pair(&Inputs::Directional) {
-        Some(data) => data.xy(),
-        None => return,
-    };
-
-    for (mut vel, mut jump, mut state, body, grounded, transform) in q_state.iter_mut() {
+    for (
+        mut vel,
+        mut buffer,
+        mut jump,
+        mut state,
+        body,
+        grounded,
+        transform,
+        mut gravity,
+        facing_direction,
+    ) in q_state.iter_mut()
+    {
         match state.stage {
-            Stage::Dormant
-                if input.just_pressed(&Inputs::Jump)
-                    && !input_blocker.check(Inputs::Jump)
-                    && jump.has_air_jumped()
-                    && move_axis.y < 0. =>
-            {
-                input_blocker.block_many(Inputs::all_actions());
-                state.set_stage(Stage::Active);
+            Stage::Dormant if jump.has_air_jumped() => {
+                let x = match buffer
+                    .query_action(ActionType::Jump)
+                    .pressed()
+                    .within_timeframe(Duration::from_millis(200))
+                    .after::<Direction>()
+                    .last()
+                    .any(Direction::DownRight.roll_clockwise(Direction::DownLeft))
+                    .x()
+                {
+                    Some(vec_x) => {
+                        let Some(out) = vec_x.first() else { return };
+                        *out
+                    }
+                    None => return,
+                };
 
-                if vel.x.signum() * move_axis.x.signum() < -0.2 || vel.x.abs() < state.kick_speed {
-                    vel.x = state.kick_speed * move_axis.x.abs().ceil().copysign(move_axis.x) * 1.1;
+                buffer.block_many(Inputs::all_actions());
+                state.set_stage(Stage::Active);
+                gravity.0 = 0.;
+
+                if vel.x.signum() * x.signum() < -0.2 || vel.x.abs() < state.kick_speed {
+                    vel.x = state.kick_speed * x.abs().ceil().copysign(x) * 1.1;
                 }
 
                 vel.y = -state.kick_speed;
@@ -76,14 +98,18 @@ pub fn kicking_behavior_player(
             }
             Stage::Active if grounded.check() => {
                 state.stage = Stage::Dormant;
-                input_blocker.clear();
+                gravity.0 = 1.;
+                buffer.clear_blocker();
             }
             Stage::Active => {
                 if let Some(other) = shape_intersections
                     .shape_intersections(
                         &Collider::rectangle(body.width, body.height / 2.),
                         transform.translation.xy()
-                            + Vec2::new(body.width / 4. * move_axis.x, -body.height / 4.),
+                            + Vec2::new(
+                                body.width / 4. * facing_direction.get(),
+                                -body.height / 4.,
+                            ),
                         0.,
                         CollisionGroup::filter(ENEMY),
                     )
@@ -91,7 +117,8 @@ pub fn kicking_behavior_player(
                 {
                     println!("Kicked: {other:?}");
                     state.set_stage(Stage::Dormant);
-                    input_blocker.clear();
+                    buffer.clear_blocker();
+                    gravity.0 = 1.;
 
                     jump.set_stage(jump::Stage::Active);
                     vel.y = jump.force();

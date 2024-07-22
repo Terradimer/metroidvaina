@@ -6,10 +6,9 @@ use leafwing_input_manager::{
     Actionlike,
 };
 
-use self::resources::InputBlocker;
+use self::buffers::update_inputs;
 
-// pub mod buffers;
-pub mod resources;
+pub mod buffers;
 
 #[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
 pub enum Inputs {
@@ -62,8 +61,8 @@ pub struct InputHandlerPlugin;
 impl Plugin for InputHandlerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(InputManagerPlugin::<Inputs>::default())
+            .add_systems(Update, update_inputs)
             .init_resource::<ActionState<Inputs>>()
-            .insert_resource(Inputs::input_map())
-            .insert_resource(InputBlocker::default());
+            .insert_resource(Inputs::input_map());
     }
 }

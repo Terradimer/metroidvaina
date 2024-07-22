@@ -1,9 +1,10 @@
+use std::time::Duration;
+
 use avian2d::prelude::*;
 use bevy::prelude::*;
-use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
-    input::{resources::InputBlocker, Inputs},
+    input::buffers::{ActionType, InputBuffer},
     player::components::Grounded,
 };
 
@@ -48,20 +49,27 @@ impl Jump {
 }
 
 pub fn jumping_behavior_player(
-    mut q_state: Query<(Option<&Crouch>, &Grounded, &mut LinearVelocity, &mut Jump)>,
-    input: Res<ActionState<Inputs>>,
-    input_blocker: Res<InputBlocker>,
+    mut q_state: Query<(
+        Option<&Crouch>,
+        &Grounded,
+        &mut LinearVelocity,
+        &mut Jump,
+        &mut InputBuffer,
+    )>,
 ) {
-    for (o_crouching, grounded, mut vel, mut state) in q_state.iter_mut() {
+    for (o_crouching, grounded, mut vel, mut state, mut input_buffer) in q_state.iter_mut() {
         if o_crouching.is_some_and(super::crouch::Crouch::check) && state.has_air_jumped {
             return;
         }
 
         match state.stage {
             Stage::Dormant
-                if input.just_pressed(&Inputs::Jump)
-                    && !input_blocker.check(Inputs::Jump)
-                    && (!state.has_air_jumped || grounded.check()) =>
+                if (!state.has_air_jumped || grounded.check())
+                    && input_buffer
+                        .query_action(ActionType::Jump)
+                        .within_timeframe(Duration::from_millis(200))
+                        .pressed()
+                        .consume() =>
             {
                 state.has_air_jumped = !grounded.check();
 
@@ -69,7 +77,7 @@ pub fn jumping_behavior_player(
                 vel.y = state.force;
                 return;
             }
-            Stage::Active if !input.pressed(&Inputs::Jump) || vel.y < 0. => {
+            Stage::Active if !input_buffer.check_held(ActionType::Jump) || vel.y < 0. => {
                 state.set_stage(Stage::Dormant);
                 vel.y /= 2.;
             }

@@ -4,7 +4,7 @@ use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
     collision_groups::*,
-    input::{resources::InputBlocker, Inputs},
+    input::{buffers::InputBuffer, Inputs},
     player::components::{FacingDirection, Grounded, Player},
     shape_intersections::ShapeIntersections,
 };
@@ -78,11 +78,11 @@ pub fn projectile_behavior(
 pub fn shot_player_behavior(
     mut commands: Commands,
     input: Res<ActionState<Inputs>>,
-    mut input_blocker: ResMut<InputBlocker>,
     time: Res<Time>,
     mut q_player: Query<
         (
             &Transform,
+            &mut InputBuffer,
             &mut LinearVelocity,
             &FacingDirection,
             &mut BehaviorInput<Shot>,
@@ -91,25 +91,27 @@ pub fn shot_player_behavior(
         With<Player>,
     >,
 ) {
-    for (transform, mut velocity, direction, mut behavior_input, grounded) in q_player.iter_mut() {
+    for (transform, mut buffer, mut velocity, direction, mut behavior_input, grounded) in
+        q_player.iter_mut()
+    {
         let (behavior, inputs) = behavior_input.get_mut();
         let timer_finished = behavior.stage_timer.tick(time.delta()).finished();
 
         match &behavior.stage {
-            Stage::Dormant if input.just_pressed(&inputs) && !input_blocker.check(inputs) => {
+            Stage::Dormant if input.just_pressed(&inputs) && !buffer.blocked(inputs) => {
                 behavior.set_stage(Stage::Stall);
                 Shot::spawn_projectile(&mut commands, transform.translation, direction.get());
 
                 if grounded.check() {
-                    input_blocker.block_many(Inputs::all_actions());
+                    buffer.block_many(Inputs::all_actions());
                     velocity.x = 0.;
                 } else {
-                    input_blocker.block_many(Inputs::non_directional());
+                    buffer.block_many(Inputs::non_directional());
                 }
             }
             Stage::Stall if timer_finished => {
                 behavior.set_stage(Stage::Dormant);
-                input_blocker.clear();
+                buffer.clear_blocker();
             }
             _ => {}
         }

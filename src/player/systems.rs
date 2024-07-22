@@ -5,19 +5,13 @@ use bevy::{
 };
 use leafwing_input_manager::action_state::ActionState;
 
-use crate::behavior::{jump::Jump, kick::Kick, shot::Shot, BehaviorInput};
-use crate::{behavior::crouch::Crouch, collision_groups::CollisionGroup};
-use crate::{behavior::slide::Slide, collision_groups::PLAYER};
 use crate::{
     behavior::{
-        // crouch::Crouch,
-        demo_slash::DemoSlash,
-        // jump::Jumping,
-        // kick::Kick,
-        // shot::Shot,
-        // slide::Slide,
+        crouch::Crouch, demo_slash::DemoSlash, jump::Jump, kick::Kick, shot::Shot, slide::Slide,
+        BehaviorInput,
     },
-    input::{resources::InputBlocker, Inputs},
+    collision_groups::{CollisionGroup, PLAYER},
+    input::{buffers::InputBuffer, Inputs},
     macros::query_guard,
 };
 
@@ -69,6 +63,7 @@ pub fn startup(
             Grounded::new(),
             player_body,
             FacingDirection::new(),
+            InputBuffer::new(),
         ))
         .insert((
             RigidBody::Dynamic,
@@ -94,8 +89,7 @@ pub fn startup(
 
 pub fn horizontal_movement(
     input: Res<ActionState<Inputs>>,
-    input_blocker: Res<InputBlocker>,
-    mut q_player: Query<(&mut LinearVelocity, &Crouch), With<Player>>,
+    mut q_player: Query<(&mut LinearVelocity, &Crouch, &InputBuffer), With<Player>>,
     time: Res<Time>,
 ) {
     let move_axis = match input.clamped_axis_pair(&Inputs::Directional) {
@@ -103,16 +97,16 @@ pub fn horizontal_movement(
         None => return,
     };
 
-    let (mut vel, crouching) = query_guard!(q_player.get_single_mut());
+    let (mut vel, crouching, buffer) = query_guard!(q_player.get_single_mut());
 
     if !(move_axis.x.abs() > 0.2)
         || vel.x.signum() * move_axis.x.signum() < 0.
-        || input_blocker.check(Inputs::Directional)
+        || buffer.blocked(Inputs::Directional)
     {
         vel.x -= vel.x * PLAYER_SLOWING_FACTOR * time.delta_seconds();
     }
 
-    if crouching.check() || input_blocker.check(Inputs::Directional) {
+    if crouching.check() || buffer.blocked(Inputs::Directional) {
         return;
     }
 
@@ -123,17 +117,16 @@ pub fn horizontal_movement(
 
 pub fn update_facing_direction(
     input: Res<ActionState<Inputs>>,
-    input_blocker: Res<InputBlocker>,
-    mut q_player: Query<&mut FacingDirection, With<Player>>,
+    mut q_player: Query<(&mut FacingDirection, &InputBuffer), With<Player>>,
 ) {
-    let mut direction = query_guard!(q_player.get_single_mut());
+    let (mut direction, buffer) = query_guard!(q_player.get_single_mut());
 
     let move_axis = match input.clamped_axis_pair(&Inputs::Directional) {
         Some(data) => data.xy(),
         None => return,
     };
 
-    if move_axis.x.abs() > 0.1 && !input_blocker.check(Inputs::Directional) {
+    if move_axis.x.abs() > 0.1 && !buffer.blocked(Inputs::Directional) {
         direction.set(move_axis.x);
     }
 }

@@ -29,6 +29,13 @@ impl Crouch {
         }
     }
 
+    pub fn stored_collider(&self) -> Option<Entity> {
+        match self.stage {
+            Stage::Standing => None,
+            Stage::Crouching { collider_storage } => Some(collider_storage),
+        }
+    }
+
     pub fn set_stage(&mut self, stage: Stage) {
         self.stage = stage;
     }

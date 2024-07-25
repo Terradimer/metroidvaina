@@ -139,17 +139,23 @@ pub fn update_facing_direction(
 }
 
 pub fn update_contact(
-    mut q_player: Query<(&mut Grounded, &Body), With<Player>>,
+    mut q_player: Query<(&mut Grounded, &Body, &Crouch), With<Player>>,
     collisions: Res<Collisions>,
 ) {
-    // dbg!(collisions.iter().map(|_| 1).sum::<i32>());
-    let (mut grounded, p_body) = query_guard!(q_player.get_single_mut());
+    let (mut grounded, p_body, p_crouch) = query_guard!(q_player.get_single_mut());
 
     grounded.stop();
 
-    for collision in collisions.collisions_with_entity(p_body.collider_ref) {
+    let iter: &mut dyn Iterator<Item = &Contacts> = match p_crouch.stored_collider() {
+        None => &mut collisions.collisions_with_entity(p_body.collider_ref),
+        Some(stored_collider) => &mut collisions
+            .collisions_with_entity(p_body.collider_ref)
+            .chain(collisions.collisions_with_entity(stored_collider)),
+    };
+
+    for collision in iter  {
         for normal in collision.manifolds.iter().map(|manifold| {
-            if collision.entity1 == p_body.collider_ref {
+            if collision.entity1 == p_body.collider_ref || Some(collision.entity1) == p_crouch.stored_collider() {
                 manifold.normal1
             } else {
                 manifold.normal2

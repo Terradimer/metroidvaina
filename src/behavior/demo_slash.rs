@@ -2,16 +2,14 @@ use std::time::Duration;
 
 use avian2d::prelude::*;
 use bevy::prelude::*;
-use leafwing_input_manager::action_state::ActionState;
 
 use crate::collision_groups::ENEMY;
-use crate::input::buffers::InputBuffer;
+use crate::input::blocker::Blocker;
+use crate::input::buffer::InputBuffer;
 use crate::shape_intersections::ShapeIntersections;
-use crate::{
-    collision_groups::*,
-    input::Inputs,
-    player::components::{FacingDirection, Grounded, Player},
-};
+use crate::state::facing_direction::FacingDirection;
+use crate::state::grounded::Grounded;
+use crate::{collision_groups::*, player::components::Player};
 
 use super::BehaviorInput;
 
@@ -55,7 +53,6 @@ impl DemoSlash {
 }
 
 pub fn demo_slash_player_behavior(
-    input: Res<ActionState<Inputs>>,
     mut q_state: Query<
         (
             &mut LinearVelocity,
@@ -77,13 +74,20 @@ pub fn demo_slash_player_behavior(
         let timer_finished = behavior.stage_timer.tick(time.delta()).finished();
 
         match &behavior.stage {
-            Stage::Dormant if input.just_pressed(&inputs) && !buffer.blocked(inputs) => {
+            Stage::Dormant
+                if buffer
+                    .query()
+                    .contains(inputs.just_pressed())
+                    .within_timeframe(Duration::from_millis(200))
+                    .consume() =>
+            {
                 behavior.set_stage(Stage::Windup);
-                buffer.block_many(Inputs::non_directional());
 
                 if grounded.check() {
-                    buffer.block_many(Inputs::all_actions());
+                    buffer.block_all();
                     vel.x = 0.;
+                } else {
+                    buffer.block(Blocker::non_directional());
                 }
             }
             Stage::Windup if timer_finished => {

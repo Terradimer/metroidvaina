@@ -3,13 +3,16 @@ use std::time::Duration;
 use avian2d::prelude::*;
 use bevy::prelude::*;
 
-use crate::input::buffers::{ActionType, Direction, InputBuffer};
-use crate::player::components::FacingDirection;
+use crate::input::buffer::InputBuffer;
+use crate::input::directions::InputDirection;
+use crate::input::inputs::Inputs;
 use crate::shape_intersections::ShapeIntersections;
+
+use crate::state::facing_direction::FacingDirection;
+use crate::state::grounded::Grounded;
 use crate::{
     collision_groups::*,
-    input::Inputs,
-    player::components::{Body, Grounded, Player},
+    player::components::{Body, Player},
 };
 
 use super::jump::{self, jumping_behavior_player, Jump};
@@ -70,27 +73,24 @@ pub fn kicking_behavior_player(
         match state.stage {
             Stage::Dormant if jump.has_air_jumped() => {
                 let x = match buffer
-                    .query_action(ActionType::Jump)
-                    .pressed()
+                    .query()
                     .within_timeframe(Duration::from_millis(200))
-                    .after::<Direction>()
-                    .last()
-                    .any(Direction::DownRight.roll_clockwise(Direction::DownLeft))
-                    .x()
+                    .contains_any(vec![Inputs::Jump.just_pressed()])
+                    .contains_any(
+                        InputDirection::DownRight.roll_clockwise(InputDirection::DownLeft),
+                    )
+                    .consume_recent()
                 {
-                    Some(vec_x) => {
-                        let Some(out) = vec_x.first() else { return };
-                        *out
-                    }
+                    Some(frame) => frame.x(),
                     None => return,
                 };
 
-                buffer.block_many(Inputs::all_actions());
+                buffer.block_all();
                 state.set_stage(Stage::Active);
                 gravity.0 = 0.;
 
                 if vel.x.signum() * x.signum() < -0.2 || vel.x.abs() < state.kick_speed {
-                    vel.x = state.kick_speed * x.abs().ceil().copysign(x) * 1.1;
+                    vel.x = state.kick_speed * x.abs().ceil().copysign(x) * 0.9;
                 }
 
                 vel.y = -state.kick_speed;

@@ -1,15 +1,13 @@
+use crate::collision_groups::CollisionGroup;
 use crate::collision_groups::ENVIRONMENT;
-use crate::input::buffers::InputBuffer;
+use crate::input::buffer::InputBuffer;
+use crate::input::directions::InputDirection;
 use crate::shape_intersections::ShapeIntersections;
-use crate::{collision_groups::CollisionGroup, player::components::Grounded};
+use crate::state::grounded::Grounded;
 use avian2d::prelude::*;
 use bevy::prelude::*;
-use leafwing_input_manager::action_state::ActionState;
 
-use crate::{
-    input::Inputs,
-    player::components::{Body, Player},
-};
+use crate::player::components::{Body, Player};
 
 use super::slide::Slide;
 
@@ -83,24 +81,11 @@ pub fn crouching_behavior_player(
     >,
     mut collision_params: ParamSet<(Query<&mut CollisionLayers>, ShapeIntersections)>,
     q_transform: Query<&Transform>,
-    input: Res<ActionState<Inputs>>,
     mut commands: Commands,
 ) {
-    let axis_data = match input.clamped_axis_pair(&Inputs::Directional) {
-        Some(data) => data.xy(),
-        None => return,
-    };
-
-    for (entity, slide, grounded, mut body, mut state, input_buffer) in q_player.iter_mut() {
-        let input_crouching = !input_buffer.blocked(Inputs::Directional)
-            && axis_data.x.abs() < 0.2
-            && axis_data.y < 0.;
-
-        let trying_crouch =
-            slide.is_some_and(super::slide::Slide::check) || (input_crouching && grounded.check());
-
+    for (entity, slide, grounded, mut body, mut state, input) in q_player.iter_mut() {
         match &state.stage {
-            Stage::Standing if trying_crouch => {
+            Stage::Standing if (input.is(InputDirection::Down) && grounded.check()) => {
                 let mut q_collision_group = collision_params.p0();
 
                 let Ok(mut body_collision_group) = q_collision_group.get_mut(body.collider_ref)
@@ -121,7 +106,9 @@ pub fn crouching_behavior_player(
                     body.width,
                 );
             }
-            Stage::Crouching { collider_storage } if !trying_crouch => {
+            Stage::Crouching { collider_storage }
+                if !input.is(InputDirection::Down) && !slide.is_some_and(Slide::check) =>
+            {
                 let Ok(transform) = q_transform.get(entity) else {
                     return;
                 };

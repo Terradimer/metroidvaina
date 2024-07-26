@@ -1,11 +1,11 @@
 use bevy::app::Plugin;
 use bevy::prelude::*;
 
-use crate::input::Inputs;
+use crate::input::inputs::Inputs;
 
 use self::{
     crouch::CrouchBehavior, demo_slash::SlashingBehavior, jump::JumpBehavior,
-    kick::KickingBehavior, shot::ShotBehavior, slide::SlidingBehavior,
+    kick::KickingBehavior, shot::ShotBehavior, slide::SlidingBehavior, walk::WalkBehavior,
 };
 
 pub mod crouch;
@@ -14,6 +14,7 @@ pub mod jump;
 pub mod kick;
 pub mod shot;
 pub mod slide;
+pub mod walk;
 
 pub struct BehaviorPlugin;
 
@@ -26,6 +27,7 @@ impl Plugin for BehaviorPlugin {
             SlashingBehavior,
             CrouchBehavior,
             ShotBehavior,
+            WalkBehavior,
         ));
     }
 }

@@ -4,8 +4,8 @@ mod collision_groups;
 mod enemies;
 mod input;
 mod macros;
-mod player;
-
+pub mod player;
+mod state;
 mod world;
 mod shape_intersections;
 
@@ -28,6 +28,7 @@ use bevy_asset_loader::prelude::*;
 use enemies::EnemiesPlugin;
 use input::InputHandlerPlugin;
 use player::PlayerPlugin;
+use state::StateHandlerPlugin;
 use world::WorldPlugin;
 
 pub const WINDOW_WIDTH: f32 = 1920. * 0.75;
@@ -63,6 +64,7 @@ fn main() {
             PhysicsDebugPlugin::default(),
             // Project plugins
             InputHandlerPlugin,
+            StateHandlerPlugin,
             WorldPlugin,
             PlayerPlugin,
             EnemiesPlugin,

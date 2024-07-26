@@ -1,12 +1,14 @@
+use std::time::Duration;
+
 use avian2d::prelude::*;
 use bevy::prelude::*;
-use leafwing_input_manager::action_state::ActionState;
 
 use crate::{
     collision_groups::*,
-    input::{buffers::InputBuffer, Inputs},
-    player::components::{FacingDirection, Grounded, Player},
+    input::{blocker::Blocker, buffer::InputBuffer},
+    player::components::Player,
     shape_intersections::ShapeIntersections,
+    state::{facing_direction::FacingDirection, grounded::Grounded},
 };
 
 use super::BehaviorInput;
@@ -77,7 +79,6 @@ pub fn projectile_behavior(
 
 pub fn shot_player_behavior(
     mut commands: Commands,
-    input: Res<ActionState<Inputs>>,
     time: Res<Time>,
     mut q_player: Query<
         (
@@ -98,15 +99,21 @@ pub fn shot_player_behavior(
         let timer_finished = behavior.stage_timer.tick(time.delta()).finished();
 
         match &behavior.stage {
-            Stage::Dormant if input.just_pressed(&inputs) && !buffer.blocked(inputs) => {
+            Stage::Dormant
+                if buffer
+                    .query()
+                    .contains(inputs.just_pressed())
+                    .within_timeframe(Duration::from_millis(200))
+                    .consume() =>
+            {
                 behavior.set_stage(Stage::Stall);
                 Shot::spawn_projectile(&mut commands, transform.translation, direction.get());
 
                 if grounded.check() {
-                    buffer.block_many(Inputs::all_actions());
+                    buffer.block_all();
                     velocity.x = 0.;
                 } else {
-                    buffer.block_many(Inputs::non_directional());
+                    buffer.block(Blocker::non_directional());
                 }
             }
             Stage::Stall if timer_finished => {

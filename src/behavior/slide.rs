@@ -2,15 +2,13 @@ use std::time::Duration;
 
 use avian2d::prelude::*;
 use bevy::prelude::*;
-use leafwing_input_manager::action_state::ActionState;
 
 use crate::collision_groups::{CollisionGroup, ENEMY};
-use crate::input::buffers::InputBuffer;
+use crate::input::buffer::InputBuffer;
+use crate::input::inputs::Inputs;
+use crate::player::components::{Body, Player};
 use crate::shape_intersections::ShapeIntersections;
-use crate::{
-    input::Inputs,
-    player::components::{Body, FacingDirection, Player},
-};
+use crate::state::facing_direction::FacingDirection;
 
 use super::crouch::Crouch;
 
@@ -60,7 +58,6 @@ impl Slide {
 }
 
 fn sliding_handler_player(
-    input: Res<ActionState<Inputs>>,
     mut q_player: Query<
         (
             &mut LinearVelocity,
@@ -84,10 +81,13 @@ fn sliding_handler_player(
         match state.stage {
             Stage::Dormant
                 if crouching.check()
-                    && input.just_pressed(&Inputs::Jump)
-                    && !buffer.blocked(Inputs::Jump) =>
+                    && buffer
+                        .query()
+                        .contains(Inputs::Jump.just_pressed())
+                        .within_timeframe(Duration::from_millis(200))
+                        .consume() =>
             {
-                buffer.block_many(Inputs::all_actions());
+                buffer.block_all();
                 state.set_stage(Stage::Accelerate);
             }
             Stage::Accelerate if timer_finished => {

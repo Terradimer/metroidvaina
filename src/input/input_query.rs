@@ -114,9 +114,9 @@ impl<'a> InputQuery<'a> {
     /// # Returns
     ///
     /// A mutable reference to self for method chaining.
-    pub fn sequence<T: InputLike + Blockable>(&mut self, filter: Vec<T>) -> &mut Self {
-        if filter.is_empty()
-            || filter
+    pub fn sequence<T: InputLike + Blockable>(&mut self, inputs: Vec<T>) -> &mut Self {
+        if inputs.is_empty()
+            || inputs
                 .iter()
                 .any(|input| self.source.blocked(input.to_blocker()))
         {
@@ -124,25 +124,22 @@ impl<'a> InputQuery<'a> {
             return self;
         }
 
-        let mut result = Vec::new();
-        let mut window = VecDeque::with_capacity(filter.len());
-        let filter_len = filter.len();
+        self.frames = self
+            .frames
+            .windows(inputs.len())
+            .filter(|window| {
+                inputs
+                    .iter()
+                    .zip(*window)
+                    .all(|(f, frame)| f.matches(frame))
+            })
+            .flatten()
+            .copied()
+            .collect();
 
-        for frame in self.frames.iter() {
-            window.push_back(frame);
-            if window.len() > filter_len {
-                window.pop_front();
-            }
-
-            if window.len() == filter_len && window.iter().zip(&filter).all(|(e, d)| d.matches(e)) {
-                result.extend(window.drain(..));
-            }
-        }
-
-        self.frames = result;
         self
     }
-
+    
     /// Returns a reference to the most recent frame, if any.
     /// If the query has failed (is empty), it returns none.
     ///
@@ -180,13 +177,13 @@ impl<'a> InputQuery<'a> {
         }
         self
     }
-    
+
     /// Chains a new query on the input buffer, if the query being chained has "failed" (is empty)
     /// all query's chained will also fail.
     /// The new query will be composed of the input frames that occured AFTER the least recent remaining
     /// frame of the chained query.
-    /// 
-    /// This can be syntactically thought of as "chained_query" [happens] "before" "returned_query" 
+    ///
+    /// This can be syntactically thought of as "chained_query" [happens] "before" "returned_query"
     ///
     /// # Returns
     ///
@@ -206,10 +203,10 @@ impl<'a> InputQuery<'a> {
 
     /// Chains a new query on the input buffer, if the query being chained has "failed" (is empty)
     /// all query's chained will also fail.
-    /// The new query will be composed of the input frames that occured BEFORE the most recent remaining 
+    /// The new query will be composed of the input frames that occured BEFORE the most recent remaining
     /// frame of the chained query.
-    /// 
-    /// This can be syntactically thought of as "chained_query" [happens] "after" "returned_query" 
+    ///
+    /// This can be syntactically thought of as "chained_query" [happens] "after" "returned_query"
     ///
     /// # Returns
     ///

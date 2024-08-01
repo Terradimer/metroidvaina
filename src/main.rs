@@ -5,17 +5,16 @@ mod enemies;
 mod input;
 mod macros;
 pub mod player;
+mod shape_intersections;
 mod state;
 mod world;
-mod shape_intersections;
 
-use std::time::Duration;
-
-use avian2d::prelude::Gravity;
-use avian2d::schedule::{Physics, TimestepMode};
-use avian2d::PhysicsPlugins;
-use avian2d::debug_render::PhysicsDebugPlugin;
-use behavior::BehaviorPlugin;
+use avian2d::{
+    debug_render::PhysicsDebugPlugin,
+    prelude::Gravity,
+    schedule::{Physics, TimestepMode},
+    PhysicsPlugins,
+};
 use bevy::{
     prelude::*,
     render::{
@@ -24,7 +23,9 @@ use bevy::{
     },
     window::{PresentMode::AutoNoVsync, WindowResolution},
 };
-use bevy_asset_loader::prelude::*;
+use std::time::Duration;
+
+use behavior::BehaviorPlugin;
 use enemies::EnemiesPlugin;
 use input::InputHandlerPlugin;
 use player::PlayerPlugin;
@@ -56,9 +57,6 @@ fn main() {
             })
             .set(ImagePlugin::default_nearest()),))
         .init_state::<GameState>()
-        .add_loading_state(
-            LoadingState::new(GameState::Loading).continue_to_state(GameState::Playing),
-        )
         .add_plugins((
             PhysicsPlugins::default().with_length_unit(100.),
             PhysicsDebugPlugin::default(),
@@ -70,7 +68,6 @@ fn main() {
             EnemiesPlugin,
             BehaviorPlugin,
         ))
-        // .insert_resource(Time::<Physics>::from_timestep(avian2d::schedule::TimestepMode::Variable { max_delta: () }))
         .insert_resource(Gravity(Vec2::NEG_Y * 1000.0))
         .insert_resource(Time::new_with(Physics::from_timestep(
             TimestepMode::Fixed {
@@ -79,7 +76,6 @@ fn main() {
                 max_delta_overstep: Duration::from_secs_f32(0.01),
             },
         )))
-        // .add_systems(Startup, entity_count)
         .run();
 }
 
@@ -90,9 +86,9 @@ enum GameState {
     Playing,
 }
 
-
-// fn entity_count(mut config: ResMut<GizmoConfigStore>) {
-//     config.config_mut::<DefaultGizmoConfigGroup>().0.depth_bias = -1.;
-//     // println!("{:?}", q_entities.iter().fold(0, |x, _| x + 1))
-//     // println!("{:?}", q_entities.iter().map(|x| (x.0, x.1.coefficient)).collect::<Vec<_>>())
-// }
+// This is the system use for loading assets in the test scene, 
+// it will be replaced with proper dynamic scene loading in the 
+// same dev cycle we implement level loading
+fn init_loader() {
+    
+}

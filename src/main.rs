@@ -1,10 +1,10 @@
 mod behavior;
 mod camera;
+mod characters;
 mod collision_groups;
 mod enemies;
 mod input;
 mod macros;
-pub mod player;
 mod shape_intersections;
 mod state;
 mod world;
@@ -23,12 +23,13 @@ use bevy::{
     },
     window::{PresentMode::AutoNoVsync, WindowResolution},
 };
+use bevy_asset_loader::prelude::*;
+use characters::CharactersPlugin;
 use std::time::Duration;
 
 use behavior::BehaviorPlugin;
 use enemies::EnemiesPlugin;
 use input::InputHandlerPlugin;
-use player::PlayerPlugin;
 use state::StateHandlerPlugin;
 use world::WorldPlugin;
 
@@ -57,14 +58,17 @@ fn main() {
             })
             .set(ImagePlugin::default_nearest()),))
         .init_state::<GameState>()
+        .add_loading_state(
+            LoadingState::new(GameState::Loading).continue_to_state(GameState::Playing),
+        )
         .add_plugins((
             PhysicsPlugins::default().with_length_unit(100.),
             PhysicsDebugPlugin::default(),
-            // Project plugins
+            // Project plugins1
+            CharactersPlugin,
             InputHandlerPlugin,
             StateHandlerPlugin,
             WorldPlugin,
-            PlayerPlugin,
             EnemiesPlugin,
             BehaviorPlugin,
         ))
@@ -84,11 +88,4 @@ enum GameState {
     #[default]
     Loading,
     Playing,
-}
-
-// This is the system use for loading assets in the test scene, 
-// it will be replaced with proper dynamic scene loading in the 
-// same dev cycle we implement level loading
-fn init_loader() {
-    
 }

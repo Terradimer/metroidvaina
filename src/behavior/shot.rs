@@ -6,9 +6,9 @@ use bevy::prelude::*;
 use crate::{
     collision_groups::*,
     input::{blocker::Blocker, buffer::InputBuffer},
-    player::components::Player,
     shape_intersections::ShapeIntersections,
     state::{facing_direction::FacingDirection, grounded::Grounded},
+    characters::demo_player::DemoPlayer
 };
 
 use super::BehaviorInput;
@@ -89,7 +89,7 @@ pub fn shot_player_behavior(
             &mut BehaviorInput<Shot>,
             &Grounded,
         ),
-        With<Player>,
+        With<DemoPlayer>,
     >,
 ) {
     for (transform, mut buffer, mut velocity, direction, mut behavior_input, grounded) in

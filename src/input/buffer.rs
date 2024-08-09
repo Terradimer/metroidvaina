@@ -67,7 +67,7 @@ impl InputBuffer {
     }
 
     /// Returns the current input frame.
-    pub fn this_frame(&self) -> InputFrame {
+    pub fn current_frame(&self) -> InputFrame {
         self.current_frame
     }
 

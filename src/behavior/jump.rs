@@ -41,7 +41,11 @@ impl Jump {
     pub fn force(&self) -> f32 {
         self.force
     }
-
+    
+    pub fn stage(&self) -> &Stage {
+        &self.stage
+    }
+    
     pub fn reset_air_jump(&mut self) {
         self.has_air_jumped = false;
     }

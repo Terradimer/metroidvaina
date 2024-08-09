@@ -34,7 +34,7 @@ impl<'a> InputQuery<'a> {
     ///
     /// # Returns
     ///
-    /// `true` if there are frames, `false` otherwise.    
+    /// `true` if there are frames, `false` otherwise.
     pub fn check(&self) -> bool {
         !self.frames.is_empty()
     }
@@ -139,7 +139,7 @@ impl<'a> InputQuery<'a> {
 
         self
     }
-    
+
     /// Returns a reference to the most recent frame, if any.
     /// If the query has failed (is empty), it returns none.
     ///

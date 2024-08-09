@@ -48,6 +48,11 @@ impl Blockable for InputDirection {
 }
 
 impl InputDirection {
+    pub const ANY_DOWN: [Self; 3] = [Self::Down, Self::DownRight, Self::DownLeft];
+    pub const ANY_UP: [Self; 3] = [Self::Up, Self::UpRight, Self::UpLeft];
+    pub const ANY_RIGHT: [Self; 3] = [Self::Right, Self::UpRight, Self::DownRight];
+    pub const ANY_LEFT: [Self; 3] = [Self::Left, Self::UpLeft, Self::DownLeft];
+
     fn from_u32(num: u32) -> Self {
         match num % 8 {
             0 => InputDirection::Up,
@@ -115,7 +120,7 @@ impl InputDirection {
         }
         result
     }
-    
+
     /// Converts a raw 2D input vector to an `InputDirection`.
     ///
     /// # Arguments

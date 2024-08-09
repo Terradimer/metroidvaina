@@ -10,10 +10,7 @@ use crate::shape_intersections::ShapeIntersections;
 
 use crate::state::facing_direction::FacingDirection;
 use crate::state::grounded::Grounded;
-use crate::{
-    collision_groups::*,
-    player::components::{Body, Player},
-};
+use crate::{characters::demo_player::DemoPlayer, characters::Body, collision_groups::*};
 
 use super::jump::{self, jumping_behavior_player, Jump};
 
@@ -35,6 +32,14 @@ impl Kick {
             kick_speed,
         }
     }
+    
+    pub fn is_active(&self) -> bool {
+        matches!(self.stage, Stage::Active)
+    }
+    
+    pub fn is_dormant(&self) -> bool {
+        matches!(self.stage, Stage::Dormant)
+    }
 
     pub fn set_stage(&mut self, stage: Stage) {
         self.stage = stage;
@@ -54,7 +59,7 @@ pub fn kicking_behavior_player(
             &mut GravityScale,
             &FacingDirection,
         ),
-        With<Player>,
+        With<DemoPlayer>,
     >,
     mut shape_intersections: ShapeIntersections,
 ) {
@@ -71,18 +76,16 @@ pub fn kicking_behavior_player(
     ) in q_state.iter_mut()
     {
         match state.stage {
-            Stage::Dormant if jump.has_air_jumped() => {
+            Stage::Dormant if jump.has_air_jumped() && !grounded.check() => {
                 let x = match buffer
                     .query()
                     .within_timeframe(Duration::from_millis(200))
-                    .contains_any(vec![Inputs::Jump.just_pressed()])
-                    .contains_any(
-                        InputDirection::DownRight.roll_clockwise(InputDirection::DownLeft),
-                    )
+                    .contains(Inputs::Jump.just_pressed())
+                    .contains_any(Vec::from(InputDirection::ANY_DOWN))
                     .consume_recent()
                 {
                     Some(frame) => frame.x(),
-                    None => return,
+                    None => continue,
                 };
 
                 buffer.block_all();
@@ -100,6 +103,7 @@ pub fn kicking_behavior_player(
                 state.stage = Stage::Dormant;
                 gravity.0 = 1.;
                 buffer.clear_blocker();
+                *vel = LinearVelocity::ZERO;
             }
             Stage::Active => {
                 if let Some(other) = shape_intersections

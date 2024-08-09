@@ -1,25 +1,49 @@
 use avian2d::prelude::*;
-use bevy::{
-    prelude::*,
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+use bevy::prelude::*;
+use bevy_asset_loader::loading_state::{
+    config::{ConfigureLoadingState, LoadingStateConfig},
+    LoadingStateAppExt,
 };
+use sprite_controller::{interpret_sprite, DemoPlayerAnimationInterpreter, DemoPlayerSprites};
 
 use crate::{
     behavior::{
         crouch::Crouch, demo_slash::DemoSlash, jump::Jump, kick::Kick, shot::Shot, slide::Slide,
         walk::Walk, BehaviorInput,
     },
+    characters::Body,
     collision_groups::{CollisionGroup, PLAYER},
-    input::{buffer::InputBuffer, inputs::Inputs}, state::{facing_direction::FacingDirection, grounded::Grounded},
+    input::{buffer::InputBuffer, inputs::Inputs},
+    state::{facing_direction::FacingDirection, grounded::Grounded},
+    GameState,
 };
 
-use super::components::*;
+mod sprite_controller;
 
-pub fn startup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
+#[derive(Component)]
+pub struct DemoPlayer;
+
+pub fn spawn_demo_player(mut commands: Commands, demo_player_sprites: Res<DemoPlayerSprites>) {
+    let player_sprite = commands
+        .spawn((
+            SpriteBundle {
+                texture: demo_player_sprites.texture.clone(),
+                transform: Transform {
+                    scale: Vec3::new(2.5, 2.5, 1.),
+                    translation: Vec3::Y * 55.,
+                    ..default()
+                },
+                ..default()
+            },
+            TextureAtlas {
+                layout: demo_player_sprites.layout.clone(),
+                index: 0,
+            },
+            DemoPlayerSprites::idle_anim(),
+        ))
+        .id();
+
+    // Load the base for the player behavior
     let height = 100.;
     let width = 50.;
 
@@ -51,13 +75,8 @@ pub fn startup(
 
     commands
         .spawn((
-            MaterialMesh2dBundle {
-                mesh: Mesh2dHandle(meshes.add(Rectangle::new(50., 100.0))),
-                material: materials.add(Color::srgb(0., 0., 1.)),
-                transform: Transform::from_translation(Vec3::ZERO),
-                ..default()
-            },
-            Player,
+            SpatialBundle::default(),
+            DemoPlayer,
             Grounded::new(),
             player_body,
             FacingDirection::new(),
@@ -68,6 +87,7 @@ pub fn startup(
             GravityScale(1.),
             SweptCcd::default(),
             Friction::new(0.),
+            DemoPlayerAnimationInterpreter::new(player_sprite),
             Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
             LinearVelocity::default(),
             LockedAxes::ROTATION_LOCKED,
@@ -83,5 +103,21 @@ pub fn startup(
             Kick::new(2200.),
         ))
         .add_child(collider_ref)
+        .add_child(player_sprite)
         .add_child(hurtbox_ref);
+}
+
+pub struct DemoPlayerPlugin;
+
+impl Plugin for DemoPlayerPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(OnEnter(GameState::Playing), spawn_demo_player)
+            .configure_loading_state(
+                LoadingStateConfig::new(GameState::Loading).load_collection::<DemoPlayerSprites>(),
+            )
+            .add_systems(
+                Update,
+                interpret_sprite.run_if(in_state(GameState::Playing)),
+            );
+    }
 }

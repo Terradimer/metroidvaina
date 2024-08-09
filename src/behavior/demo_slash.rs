@@ -9,7 +9,8 @@ use crate::input::buffer::InputBuffer;
 use crate::shape_intersections::ShapeIntersections;
 use crate::state::facing_direction::FacingDirection;
 use crate::state::grounded::Grounded;
-use crate::{collision_groups::*, player::components::Player};
+use crate::collision_groups::*;
+use crate::characters::demo_player::DemoPlayer;
 
 use super::BehaviorInput;
 
@@ -62,7 +63,7 @@ pub fn demo_slash_player_behavior(
             &FacingDirection,
             &Transform,
         ),
-        With<Player>,
+        With<DemoPlayer>,
     >,
     time: Res<Time>,
     mut shape_intersections: ShapeIntersections,

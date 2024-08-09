@@ -1,7 +1,13 @@
-use avian2d::collision::Collisions;
+use std::ops::Not;
+
+use avian2d::prelude::{Collider, SpatialQuery};
 use bevy::prelude::*;
 
-use crate::{player::components::Body, GameState};
+use crate::{
+    characters::Body,
+    collision_groups::{CollisionGroup, ENVIRONMENT},
+    GameState,
+};
 
 #[derive(Component)]
 pub struct Grounded {
@@ -9,18 +15,6 @@ pub struct Grounded {
 }
 
 impl Grounded {
-    pub fn start(&mut self) {
-        if !self.in_state {
-            self.in_state = true;
-        }
-    }
-
-    pub fn stop(&mut self) {
-        if self.in_state {
-            self.in_state = false;
-        }
-    }
-
     pub fn check(&self) -> bool {
         self.in_state
     }
@@ -30,23 +24,23 @@ impl Grounded {
     }
 }
 
-pub fn update_grounded(mut q_player: Query<(&mut Grounded, &Body)>, collisions: Res<Collisions>) {
-    for (mut grounded, p_body) in q_player.iter_mut() {
-        grounded.stop();
-
-        for collision in collisions.collisions_with_entity(p_body.collider_ref) {
-            for normal in collision.manifolds.iter().map(|manifold| {
-                if collision.entity1 == p_body.collider_ref {
-                    manifold.normal1
-                } else {
-                    manifold.normal2
-                }
-            }) {
-                if normal.y < 0. {
-                    grounded.start() // this already early returns
-                }
-            }
-        }
+pub fn update_grounded(
+    mut q_grounded: Query<(&mut Grounded, &Transform, &Body)>,
+    shape_intersections: SpatialQuery,
+) {
+    for (mut grounded, transform, body) in &mut q_grounded {
+        grounded.in_state = shape_intersections
+            .shape_intersections(
+                &Collider::rectangle(body.width * 0.85, 0.1),
+                Vec2::new(
+                    transform.translation.x,
+                    transform.translation.y - body.height / 2.,
+                ),
+                0.,
+                CollisionGroup::filter(ENVIRONMENT),
+            )
+            .is_empty()
+            .not();
     }
 }
 

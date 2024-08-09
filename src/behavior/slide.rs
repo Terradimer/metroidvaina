@@ -4,11 +4,13 @@ use avian2d::prelude::*;
 use bevy::prelude::*;
 
 use crate::collision_groups::{CollisionGroup, ENEMY};
-use crate::input::buffer::InputBuffer;
-use crate::input::inputs::Inputs;
-use crate::player::components::{Body, Player};
-use crate::shape_intersections::ShapeIntersections;
 use crate::state::facing_direction::FacingDirection;
+use crate::{
+    characters::demo_player::DemoPlayer,
+    characters::Body,
+    input::{buffer::InputBuffer, inputs::Inputs},
+    shape_intersections::ShapeIntersections,
+};
 
 use super::crouch::Crouch;
 
@@ -48,7 +50,7 @@ impl Slide {
                 self.stage_timer.reset();
             }
             Stage::Settle => {
-                self.stage_timer.set_duration(Duration::from_secs_f32(0.3));
+                self.stage_timer.set_duration(Duration::from_secs_f32(0.35));
                 self.stage_timer.reset();
             }
             _ => {}
@@ -68,7 +70,7 @@ fn sliding_handler_player(
             &mut Slide,
             &Transform,
         ),
-        With<Player>,
+        With<DemoPlayer>,
     >,
     time: Res<Time>,
     mut shape_intersections: ShapeIntersections,
